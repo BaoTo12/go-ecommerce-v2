@@ -2,52 +2,147 @@ syntax = "proto3";
 
 package chat.v1;
 
-option go_package = "github.com/titan-commerce/backend/chat-service/proto/chat/v1;chatv1";
+option go_package = "github.com/titan-commerce/backend/chat-service/proto/chat/v1;chatpb";
 
 import "google/protobuf/timestamp.proto";
 
 service ChatService {
+  // Conversation management
+  rpc CreateConversation(CreateConversationRequest) returns (CreateConversationResponse);
+  rpc GetConversation(GetConversationRequest) returns (GetConversationResponse);
+  rpc GetUserConversations(GetUserConversationsRequest) returns (GetUserConversationsResponse);
+
+  // Message operations
   rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
   rpc GetMessages(GetMessagesRequest) returns (GetMessagesResponse);
-  rpc GetConversations(GetConversationsRequest) returns (GetConversationsResponse);
-  rpc MarkAsRead(MarkAsReadRequest) returns (MarkAsReadResponse);
+  rpc EditMessage(EditMessageRequest) returns (EditMessageResponse);
+  rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
+  rpc MarkMessagesAsRead(MarkMessagesAsReadRequest) returns (MarkMessagesAsReadResponse);
+
+  // Real-time features
+  rpc SetTypingIndicator(SetTypingIndicatorRequest) returns (SetTypingIndicatorResponse);
+  rpc GetTypingIndicators(GetTypingIndicatorsRequest) returns (GetTypingIndicatorsResponse);
+  rpc SetOnlineStatus(SetOnlineStatusRequest) returns (SetOnlineStatusResponse);
+  rpc GetOnlineStatus(GetOnlineStatusRequest) returns (GetOnlineStatusResponse);
+
+  // WebSocket streaming
+  rpc StreamMessages(stream MessageStreamRequest) returns (stream MessageStreamResponse);
 }
 
+// Enums
 enum MessageType {
   MESSAGE_TYPE_UNSPECIFIED = 0;
   MESSAGE_TYPE_TEXT = 1;
   MESSAGE_TYPE_IMAGE = 2;
-  MESSAGE_TYPE_VIDEO = 3;
-  MESSAGE_TYPE_FILE = 4;
-  MESSAGE_TYPE_PRODUCT_LINK = 5;
+  MESSAGE_TYPE_FILE = 3;
+  MESSAGE_TYPE_PRODUCT = 4;
+  MESSAGE_TYPE_ORDER = 5;
+  MESSAGE_TYPE_SYSTEM = 6;
 }
 
+enum MessageStatus {
+  MESSAGE_STATUS_UNSPECIFIED = 0;
+  MESSAGE_STATUS_SENT = 1;
+  MESSAGE_STATUS_DELIVERED = 2;
+  MESSAGE_STATUS_READ = 3;
+  MESSAGE_STATUS_FAILED = 4;
+}
+
+enum ConversationType {
+  CONVERSATION_TYPE_UNSPECIFIED = 0;
+  CONVERSATION_TYPE_BUYER_SELLER = 1;
+  CONVERSATION_TYPE_SUPPORT = 2;
+  CONVERSATION_TYPE_GROUP = 3;
+}
+
+// Messages
 message Message {
   string message_id = 1;
   string conversation_id = 2;
   string sender_id = 3;
-  string receiver_id = 4;
-  MessageType type = 5;
+  string sender_name = 4;
+  MessageType message_type = 5;
   string content = 6;
-  string media_url = 7;
-  bool read = 8;
-  google.protobuf.Timestamp created_at = 9;
+  MessageMetadata metadata = 7;
+  MessageStatus status = 8;
+  bool is_edited = 9;
+  bool is_deleted = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+  google.protobuf.Timestamp read_at = 13;
+}
+
+message MessageMetadata {
+  string image_url = 1;
+  string file_url = 2;
+  string file_name = 3;
+  int64 file_size = 4;
+  string product_id = 5;
+  string order_id = 6;
+  string thumbnail_url = 7;
+  map<string, string> custom_data = 8;
 }
 
 message Conversation {
   string conversation_id = 1;
+  ConversationType type = 2;
+  repeated string participant_ids = 3;
+  map<string, string> participant_names = 4;
+  Message last_message = 5;
+  map<string, int32> unread_counts = 6;
+  map<string, bool> is_muted = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message TypingIndicator {
+  string conversation_id = 1;
+  string user_id = 2;
+  string user_name = 3;
+  bool is_typing = 4;
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+message OnlineStatus {
+  string user_id = 1;
+  bool is_online = 2;
+  google.protobuf.Timestamp last_seen_at = 3;
+  string device_info = 4;
+}
+
+// Request/Response messages
+message CreateConversationRequest {
+  ConversationType type = 1;
   repeated string participant_ids = 2;
-  Message last_message = 3;
-  int32 unread_count = 4;
-  google.protobuf.Timestamp updated_at = 5;
+}
+
+message CreateConversationResponse {
+  Conversation conversation = 1;
+}
+
+message GetConversationRequest {
+  string conversation_id = 1;
+}
+
+message GetConversationResponse {
+  Conversation conversation = 1;
+}
+
+message GetUserConversationsRequest {
+  string user_id = 1;
+}
+
+message GetUserConversationsResponse {
+  repeated Conversation conversations = 1;
 }
 
 message SendMessageRequest {
-  string sender_id = 1;
-  string receiver_id = 2;
-  MessageType type = 3;
-  string content = 4;
-  string media_url = 5;
+  string conversation_id = 1;
+  string sender_id = 2;
+  string sender_name = 3;
+  MessageType message_type = 4;
+  string content = 5;
+  MessageMetadata metadata = 6;
 }
 
 message SendMessageResponse {
@@ -56,28 +151,96 @@ message SendMessageResponse {
 
 message GetMessagesRequest {
   string conversation_id = 1;
-  int32 page_size = 2;
-  int32 page = 3;
+  int32 limit = 2;
+  int64 before_timestamp = 3;
 }
 
 message GetMessagesResponse {
   repeated Message messages = 1;
-  int32 total_count = 2;
 }
 
-message GetConversationsRequest {
-  string user_id = 1;
-  int32 page_size = 2;
-}
-
-message GetConversationsResponse {
-  repeated Conversation conversations = 1;
-}
-
-message MarkAsReadRequest {
+message EditMessageRequest {
   string message_id = 1;
+  string user_id = 2;
+  string new_content = 3;
 }
 
-message MarkAsReadResponse {
+message EditMessageResponse {
   bool success = 1;
 }
+
+message DeleteMessageRequest {
+  string message_id = 1;
+  string user_id = 2;
+}
+
+message DeleteMessageResponse {
+  bool success = 1;
+}
+
+message MarkMessagesAsReadRequest {
+  string conversation_id = 1;
+  string user_id = 2;
+}
+
+message MarkMessagesAsReadResponse {
+  bool success = 1;
+}
+
+message SetTypingIndicatorRequest {
+  string conversation_id = 1;
+  string user_id = 2;
+  string user_name = 3;
+  bool is_typing = 4;
+}
+
+message SetTypingIndicatorResponse {
+  bool success = 1;
+}
+
+message GetTypingIndicatorsRequest {
+  string conversation_id = 1;
+}
+
+message GetTypingIndicatorsResponse {
+  repeated TypingIndicator indicators = 1;
+}
+
+message SetOnlineStatusRequest {
+  string user_id = 1;
+  bool online = 2;
+}
+
+message SetOnlineStatusResponse {
+  bool success = 1;
+}
+
+message GetOnlineStatusRequest {
+  string user_id = 1;
+}
+
+message GetOnlineStatusResponse {
+  OnlineStatus status = 1;
+}
+
+// WebSocket streaming messages
+message MessageStreamRequest {
+  string user_id = 1;
+  string conversation_id = 2; // Optional: subscribe to specific conversation
+}
+
+message MessageStreamResponse {
+  oneof event {
+    Message new_message = 1;
+    TypingIndicator typing = 2;
+    OnlineStatus presence = 3;
+    MessageStatusUpdate status_update = 4;
+  }
+}
+
+message MessageStatusUpdate {
+  string message_id = 1;
+  MessageStatus status = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}
+

@@ -1,4 +1,4 @@
-﻿package main
+﻿﻿package main
 
 import (
 	"fmt"
@@ -17,12 +17,25 @@ func main() {
 
 	log := logger.New(logger.Config{
 		Level:       cfg.LogLevel,
-		ServiceName: cfg.ServiceName,
+		ServiceName: "chat-service",
 		CellID:      cfg.CellID,
 		Pretty:      true,
 	})
 
-	log.Info("chat-service starting...")
-	// TODO: Implement service
+	log.Info("💬 Chat Service starting...")
+	log.Infof("Cell: %s", cfg.CellID)
+	log.Infof("gRPC server would listen on :%d", cfg.GRPCPort)
+	log.Infof("WebSocket server would listen on :%d", cfg.HTTPPort)
+
+	// TODO: Initialize ScyllaDB connection
+	// TODO: Initialize repositories
+	// TODO: Initialize application service
+	// TODO: Initialize gRPC server
+	// TODO: Initialize WebSocket server
+	// TODO: Register handlers
+	// TODO: Start servers
+
+	log.Info("Chat Service ready for real-time messaging")
+
 	select {}
 }
