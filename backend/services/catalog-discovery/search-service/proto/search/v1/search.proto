@@ -5,67 +5,40 @@ package search.v1;
 option go_package = "github.com/titan-commerce/backend/search-service/proto/search/v1;searchv1";
 
 service SearchService {
-  rpc Search(SearchRequest) returns (SearchResponse);
-  rpc Autocomplete(AutocompleteRequest) returns (AutocompleteResponse);
+  rpc SearchProducts(SearchProductsRequest) returns (SearchProductsResponse);
   rpc IndexProduct(IndexProductRequest) returns (IndexProductResponse);
-  rpc DeleteProduct(DeleteProductRequest) returns (DeleteProductResponse);
 }
 
-message SearchResult {
-  string product_id = 1;
-  string name = 2;
-  string description = 3;
-  double price = 4;
-  string image_url = 5;
-  double rating = 6;
-  int32 sold_count = 7;
-  float score = 8;  // Search relevance score
-}
-
-message SearchRequest {
+message SearchProductsRequest {
   string query = 1;
-  string category_id = 2;
-  double min_price = 3;
-  double max_price = 4;
-  double min_rating = 5;
-  int32 page = 6;
-  int32 page_size = 7;
+  int32 page = 2;
+  int32 page_size = 3;
+  repeated string filters = 4;
 }
 
-message SearchResponse {
-  repeated SearchResult results = 1;
-  int32 total_count = 2;
-  int32 took_ms = 3;  // Query execution time
-}
-
-message AutocompleteRequest {
-  string query = 1;
-  int32 limit = 2;
-}
-
-message AutocompleteResponse {
-  repeated string suggestions = 1;
+message SearchProductsResponse {
+  repeated ProductResult results = 1;
+  int32 total = 2;
 }
 
 message IndexProductRequest {
-  string product_id = 1;
+  string id = 1;
   string name = 2;
   string description = 3;
-  string category_id = 4;
+  string category = 4;
   double price = 5;
   string image_url = 6;
-  double rating = 7;
-  int32 sold_count = 8;
 }
 
 message IndexProductResponse {
   bool success = 1;
 }
 
-message DeleteProductRequest {
-  string product_id = 1;
-}
-
-message DeleteProductResponse {
-  bool success = 1;
+message ProductResult {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  double price = 4;
+  string image_url = 5;
+  float score = 6;
 }
