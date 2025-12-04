@@ -1,50 +1,103 @@
-# Livestream Service 🔴
+# Livestream Service
 
-**SHOPEE LIVE** - Live streaming shopping like TikTok Shop.
+Live video shopping infrastructure with real-time streaming.
 
-## Features
+## Purpose
+Powers TikTok-style live shopping streams where sellers showcase products in real-time to buyers.
 
-- 🎥 RTMP video ingestion from seller mobile app
-- 🔄 Multi-bitrate transcoding (1080p, 720p, 480p, 360p) via FFmpeg
-- 📺 HLS packaging for adaptive bitrate streaming
-- ☁️ CDN integration (CloudFlare Stream / AWS MediaLive)
-- 💬 Live chat overlay during stream (WebSocket)
-- 📌 Pinned products during stream
-- ⚡ Flash sale triggers during live
-- 📊 Analytics: peak viewers, total views, purchases during stream
+## Technology Stack
+- **Streaming**: RTMP ingestion, HLS/DASH playback
+- **Storage**: Redis (viewer tracking, real-time data), S3 (recordings)
+- **Database**: PostgreSQL (stream metadata)
+- **API**: gRPC + WebSocket
+
+## Key Features
+- ✅ Live video streaming (RTMP → HLS/DASH)
+- ✅ Real-time viewer count tracking
+- ✅ Live chat comments
+- ✅ Featured product showcase
+- ✅ In-stream purchases
+- ✅ Like and share functionality
+- ✅ Stream scheduling
+- ✅ Automatic recording to S3
+- ✅ Stream analytics (views, watch time, revenue)
+- ✅ Peak viewer tracking
+- ✅ Viewer retention metrics
 
 ## Architecture
 
+### Stream Flow
+1. Seller streams via RTMP to media server
+2. Media server transcodes to HLS/DASH
+3. CDN distributes to viewers
+4. Service tracks viewers and interactions
+5. Stream recorded to S3
+
+### Real-time Features
+- Viewer join/leave tracking
+- Live comment stream
+- Product feature notifications
+- Sale notifications
+
+## Quick Start
+
+```bash
+export SERVICE_NAME=livestream-service
+export CELL_ID=cell-001
+export REDIS_HOST=localhost
+export S3_BUCKET=livestreams
+go run cmd/server/main.go
 ```
-Seller Mobile App (OBS) → RTMP → Livestream Service → FFmpeg Transcoding
-                                          ↓
-                                    HLS Segments → S3 → CDN
-                                          ↓
-                                   Viewers (HLS Player)
+
+## API Overview
+
+### Commands
+- `CreateStream`: Schedule new livestream
+- `StartStream`: Go live
+- `EndStream`: End stream
+- `JoinStream`: Viewer joins
+- `LeaveStream`: Viewer leaves
+- `PostComment`: Post live comment
+- `LikeStream`: Like the stream
+- `AddFeaturedProduct`: Showcase product
+- `RecordSale`: Track sale
+
+### Queries
+- `GetStream`: Get stream details
+- `GetLiveStreams`: List all live streams
+- `GetStreamComments`: Get live comments
+- `GetStreamAnalytics`: Get performance metrics
+
+## Integration
+
+### Events Published
+- `StreamStarted`: Stream went live
+- `StreamEnded`: Stream finished
+- `ProductFeatured`: Product showcased
+- `StreamSaleMade`: Sale during stream
+- `ViewerMilestone`: 100/1000/10000 viewers
+
+### Events Consumed
+- `ProductCreated`: Allow featuring new products
+- `OrderCreated`: Track stream-attributed sales
+
+## Stream Keys
+
+Each stream gets unique RTMP credentials:
+```
+rtmp://ingest.domain.com/live/{stream_key}
 ```
 
-## Tech Stack
+Playback URL:
+```
+https://cdn.domain.com/hls/{stream_id}/playlist.m3u8
+```
 
-- **RTMP Server**: nginx-rtmp or custom Go RTMP server
-- **Transcoding**: FFmpeg
-- **Packaging**: HLS segmenter
-- **Storage**: S3/MinIO for HLS segments
-- **CDN**: CloudFlare / AWS CloudFront
-- **Chat**: WebSocket for live chat
-- **Analytics**: Redis for viewer count, ClickHouse for historical data
-
-## Complexity
-
-⚠️ **HIGH** - This is the most complex service in the platform.
-
-Requires:
-- Video encoding pipeline
-- Real-time streaming protocols
-- CDN integration
-- WebSocket for chat
-- Complex state management
-
-## Status
-
-🚧 **Under Development** - Skeleton structure created
-📝 **Implementation Priority**: After core transaction services
+## Analytics Tracked
+- Total/unique viewers
+- Peak concurrent viewers
+- Average watch time
+- Viewer retention rate
+- Total revenue
+- Product click-through rate
+- Conversion rate

@@ -1,0 +1,203 @@
+syntax = "proto3";
+
+package livestream.v1;
+
+option go_package = "github.com/titan-commerce/backend/livestream-service/proto/livestream/v1;livestreampb";
+
+import "google/protobuf/timestamp.proto";
+
+service LivestreamService {
+  rpc CreateStream(CreateStreamRequest) returns (CreateStreamResponse);
+  rpc StartStream(StartStreamRequest) returns (StartStreamResponse);
+  rpc EndStream(EndStreamRequest) returns (EndStreamResponse);
+  rpc GetStream(GetStreamRequest) returns (GetStreamResponse);
+  rpc GetLiveStreams(GetLiveStreamsRequest) returns (GetLiveStreamsResponse);
+  rpc JoinStream(JoinStreamRequest) returns (JoinStreamResponse);
+  rpc LeaveStream(LeaveStreamRequest) returns (LeaveStreamResponse);
+  rpc PostComment(PostCommentRequest) returns (PostCommentResponse);
+  rpc GetComments(GetCommentsRequest) returns (GetCommentsResponse);
+  rpc LikeStream(LikeStreamRequest) returns (LikeStreamResponse);
+  rpc AddFeaturedProduct(AddFeaturedProductRequest) returns (AddFeaturedProductResponse);
+  rpc RecordSale(RecordSaleRequest) returns (RecordSaleResponse);
+  rpc GetAnalytics(GetAnalyticsRequest) returns (GetAnalyticsResponse);
+}
+
+enum StreamStatus {
+  STREAM_STATUS_UNSPECIFIED = 0;
+  STREAM_STATUS_SCHEDULED = 1;
+  STREAM_STATUS_LIVE = 2;
+  STREAM_STATUS_PAUSED = 3;
+  STREAM_STATUS_ENDED = 4;
+  STREAM_STATUS_CANCELLED = 5;
+}
+
+message Livestream {
+  string stream_id = 1;
+  string seller_id = 2;
+  string seller_name = 3;
+  string title = 4;
+  string description = 5;
+  string thumbnail_url = 6;
+  StreamStatus status = 7;
+  string stream_key = 8;
+  string playback_url = 9;
+  int32 viewer_count = 10;
+  int32 peak_viewer_count = 11;
+  int32 like_count = 12;
+  int32 share_count = 13;
+  int64 total_revenue = 14;
+  repeated string featured_products = 15;
+  google.protobuf.Timestamp scheduled_start_at = 16;
+  google.protobuf.Timestamp actual_start_at = 17;
+  google.protobuf.Timestamp ended_at = 18;
+  int32 duration = 19;
+  bool is_recorded = 20;
+  string recording_url = 21;
+  google.protobuf.Timestamp created_at = 22;
+  google.protobuf.Timestamp updated_at = 23;
+}
+
+message StreamComment {
+  string comment_id = 1;
+  string stream_id = 2;
+  string user_id = 3;
+  string user_name = 4;
+  string content = 5;
+  bool is_pinned = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
+
+message StreamAnalytics {
+  string stream_id = 1;
+  int32 total_views = 2;
+  int32 unique_viewers = 3;
+  int32 average_watch_time = 4;
+  int32 peak_viewers = 5;
+  int32 total_likes = 6;
+  int32 total_shares = 7;
+  int32 total_comments = 8;
+  int64 total_revenue = 9;
+  int32 product_click_through = 10;
+  double conversion_rate = 11;
+  double viewer_retention_rate = 12;
+}
+
+message CreateStreamRequest {
+  string seller_id = 1;
+  string seller_name = 2;
+  string title = 3;
+  string description = 4;
+  google.protobuf.Timestamp scheduled_start_at = 5;
+}
+
+message CreateStreamResponse {
+  Livestream stream = 1;
+}
+
+message StartStreamRequest {
+  string stream_id = 1;
+  string playback_url = 2;
+}
+
+message StartStreamResponse {
+  bool success = 1;
+}
+
+message EndStreamRequest {
+  string stream_id = 1;
+}
+
+message EndStreamResponse {
+  bool success = 1;
+}
+
+message GetStreamRequest {
+  string stream_id = 1;
+}
+
+message GetStreamResponse {
+  Livestream stream = 1;
+}
+
+message GetLiveStreamsRequest {
+  int32 limit = 1;
+}
+
+message GetLiveStreamsResponse {
+  repeated Livestream streams = 1;
+}
+
+message JoinStreamRequest {
+  string stream_id = 1;
+  string user_id = 2;
+  string user_name = 3;
+}
+
+message JoinStreamResponse {
+  bool success = 1;
+}
+
+message LeaveStreamRequest {
+  string stream_id = 1;
+  string user_id = 2;
+}
+
+message LeaveStreamResponse {
+  bool success = 1;
+}
+
+message PostCommentRequest {
+  string stream_id = 1;
+  string user_id = 2;
+  string user_name = 3;
+  string content = 4;
+}
+
+message PostCommentResponse {
+  StreamComment comment = 1;
+}
+
+message GetCommentsRequest {
+  string stream_id = 1;
+  int32 limit = 2;
+}
+
+message GetCommentsResponse {
+  repeated StreamComment comments = 1;
+}
+
+message LikeStreamRequest {
+  string stream_id = 1;
+  string user_id = 2;
+}
+
+message LikeStreamResponse {
+  bool success = 1;
+}
+
+message AddFeaturedProductRequest {
+  string stream_id = 1;
+  string product_id = 2;
+}
+
+message AddFeaturedProductResponse {
+  bool success = 1;
+}
+
+message RecordSaleRequest {
+  string stream_id = 1;
+  int64 amount = 2;
+}
+
+message RecordSaleResponse {
+  bool success = 1;
+}
+
+message GetAnalyticsRequest {
+  string stream_id = 1;
+}
+
+message GetAnalyticsResponse {
+  StreamAnalytics analytics = 1;
+}
+
