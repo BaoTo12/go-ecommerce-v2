@@ -3,119 +3,121 @@ package domain
 import (
 	"time"
 
-	"github.com/titan-commerce/backend/pkg/errors"
+	"github.com/google/uuid"
 )
 
-type UserCoins struct {
+// UserPoints represents a user's points balance
+type UserPoints struct {
 	UserID         string
-	Balance        int
+	TotalPoints    int
+	AvailablePoints int
 	LifetimeEarned int
 	LifetimeSpent  int
+	Level          int
 	UpdatedAt      time.Time
 }
 
-func NewUserCoins(userID string) *UserCoins {
-	return &UserCoins{
-		UserID:         userID,
-		Balance:        0,
-		LifetimeEarned: 0,
-		LifetimeSpent:  0,
-		UpdatedAt:      time.Now(),
+// PointsTransaction represents a points transaction
+type PointsTransaction struct {
+	TransactionID string
+	UserID        string
+	Points        int // positive for earn, negative for spend
+	Type          string // PURCHASE, REVIEW, REFERRAL, REDEEM, etc.
+	Reference     string // order_id, review_id, etc.
+	Description   string
+	CreatedAt     time.Time
+}
+
+// Badge represents an achievement badge
+type Badge struct {
+	BadgeID     string
+	Name        string
+	Description string
+	IconURL     string
+	Criteria    BadgeCriteria
+	Rarity      string // COMMON, RARE, EPIC, LEGENDARY
+}
+
+// BadgeCriteria defines how to earn a badge
+type BadgeCriteria struct {
+	Type      string // orders, reviews, points, streak
+	Threshold int
+}
+
+// UserBadge represents a user's earned badge
+type UserBadge struct {
+	UserID    string
+	BadgeID   string
+	EarnedAt  time.Time
+}
+
+// Reward represents a redeemable reward
+type Reward struct {
+	RewardID      string
+	Name          string
+	Description   string
+	PointsCost    int
+	RewardType    string // DISCOUNT, PRODUCT, FREE_SHIPPING
+	Value         int64
+	Stock         int
+	IsActive      bool
+}
+
+// NewUserPoints creates a new user points account
+func NewUserPoints(userID string) *UserPoints {
+	return &UserPoints{
+		UserID:          userID,
+		TotalPoints:     0,
+		AvailablePoints: 0,
+		LifetimeEarned:  0,
+		LifetimeSpent:   0,
+		Level:           1,
+		UpdatedAt:       time.Now(),
 	}
 }
 
-func (c *UserCoins) AddCoins(amount int, reason string) error {
-	if amount <= 0 {
-		return errors.New(errors.ErrInvalidInput, "amount must be positive")
-	}
-	c.Balance += amount
-	c.LifetimeEarned += amount
-	c.UpdatedAt = time.Now()
-	return nil
-}
+// Earn adds points to user account
+func (u *UserPoints) Earn(points int, transType, reference, description string) *PointsTransaction {
+	u.TotalPoints += points
+	u.AvailablePoints += points
+	u.LifetimeEarned += points
+	u.UpdatedAt = time.Now()
+	u.calculateLevel()
 
-func (c *UserCoins) SpendCoins(amount int) error {
-	if amount <= 0 {
-		return errors.New(errors.ErrInvalidInput, "amount must be positive")
-	}
-	if c.Balance < amount {
-		return errors.New(errors.ErrInsufficientBalance, "insufficient coins")
-	}
-	c.Balance -= amount
-	c.LifetimeSpent += amount
-	c.UpdatedAt = time.Now()
-	return nil
-}
-
-type Mission struct {
-	MissionID       string
-	UserID          string
-	Title           string
-	Description     string
-	RewardCoins     int
-	CurrentProgress int
-	TargetProgress  int
-	Completed       bool
-	CompletedAt     *time.Time
-	ExpiresAt       time.Time
-}
-
-func (m *Mission) UpdateProgress(progress int) error {
-	if m.Completed {
-		return errors.New(errors.ErrInvalidInput, "mission already completed")
-	}
-	
-	m.CurrentProgress = progress
-	if m.CurrentProgress >= m.TargetProgress {
-		m.Completed = true
-		now := time.Now()
-		m.CompletedAt = &now
-	}
-	return nil
-}
-
-func (m *Mission) IsExpired() bool {
-	return time.Now().After(m.ExpiresAt)
-}
-
-type CheckInStreak struct {
-	UserID          string
-	CurrentStreak   int
-	LastCheckInDate time.Time
-}
-
-func (s *CheckInStreak) CheckIn() (int, error) {
-	now := time.Now()
-	today := now.Truncate(24 * time.Hour)
-	lastCheckIn := s.LastCheckInDate.Truncate(24 * time.Hour)
-
-	// Check if already checked in today
-	if today.Equal(lastCheckIn) {
-		return 0, errors.New(errors.ErrAlreadyExists, "already checked in today")
-	}
-
-	// Check if streak continues (checked in yesterday)
-	yesterday := today.Add(-24 * time.Hour)
-	if lastCheckIn.Equal(yesterday) {
-		s.CurrentStreak++
-	} else {
-		s.CurrentStreak = 1 // Reset streak
-	}
-
-	s.LastCheckInDate = now
-
-	// Calculate reward based on streak
-	reward := s.calculateReward()
-	return reward, nil
-}
-
-func (s *CheckInStreak) calculateReward() int {
-	// Day 1: 10 coins, Day 7: 100 coins, Day 30: 500 coins
-	if s.CurrentStreak >= 30 {
-		return 500
-	} else if s.CurrentStreak >= 7 {
-		return 100
-	} else {
-		return 10 * s.CurrentStreak
+	return &PointsTransaction{
+		TransactionID: uuid.New().String(),
+		UserID:        u.UserID,
+		Points:        points,
+		Type:          transType,
+		Reference:     reference,
+		Description:   description,
+		CreatedAt:     time.Now(),
 	}
 }
+
+// Spend deducts points from user account
+func (u *UserPoints) Spend(points int, transType, reference, description string) (*PointsTransaction, error) {
+	if u.AvailablePoints < points {
+		return nil, nil // Insufficient points
+	}
+
+	u.AvailablePoints -= points
+	u.LifetimeSpent += points
+	u.UpdatedAt = time.Now()
+
+	return &PointsTransaction{
+		TransactionID: uuid.New().String(),
+		UserID:        u.UserID,
+		Points:        -points,
+		Type:          transType,
+		Reference:     reference,
+		Description:   description,
+		CreatedAt:     time.Now(),
+	}, nil
+}
+
+func (u *UserPoints) calculateLevel() {
+	// Simple level calculation: 1 level per 1000 points
+	u.Level = (u.LifetimeEarned / 1000) + 1
+}
+

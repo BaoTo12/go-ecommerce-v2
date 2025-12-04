@@ -7,89 +7,134 @@ import (
 	"github.com/titan-commerce/backend/pkg/errors"
 )
 
+// CouponType represents the type of coupon
 type CouponType string
 
 const (
-	CouponTypePercentage   CouponType = "PERCENTAGE"
-	CouponTypeFixedAmount  CouponType = "FIXED_AMOUNT"
-	CouponTypeFreeShipping CouponType = "FREE_SHIPPING"
+	CouponPercentage CouponType = "PERCENTAGE"
+	CouponFixed      CouponType = "FIXED"
+	CouponFreeShip   CouponType = "FREE_SHIPPING"
+	CouponBOGO       CouponType = "BOGO"
 )
 
+// Coupon represents a discount coupon
 type Coupon struct {
-	ID            string
-	Code          string
-	Type          CouponType
-	DiscountValue float64
-	MinPurchase   float64
-	UsageLimit    int
-	UsedCount     int
-	ValidFrom     time.Time
-	ValidUntil    time.Time
-	Active        bool
-	CreatedAt     time.Time
+	CouponID       string
+	Code           string
+	Type           CouponType
+	DiscountValue  int64 // percentage * 100 or fixed amount in cents
+	MinOrderValue  int64
+	MaxDiscount    int64
+	UsageLimit     int
+	UsageCount     int
+	PerUserLimit   int
+	ValidFrom      time.Time
+	ValidUntil     time.Time
+	IsActive       bool
+	ApplicableProducts []string
+	ApplicableCategories []string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
-func NewCoupon(code string, couponType CouponType, discountValue, minPurchase float64, usageLimit int, validFrom, validUntil time.Time) (*Coupon, error) {
+// NewCoupon creates a new coupon
+func NewCoupon(code string, couponType CouponType, discountValue, minOrderValue int64) (*Coupon, error) {
 	if code == "" {
 		return nil, errors.New(errors.ErrInvalidInput, "coupon code is required")
 	}
 	if discountValue <= 0 {
 		return nil, errors.New(errors.ErrInvalidInput, "discount value must be positive")
 	}
-	if validUntil.Before(validFrom) {
-		return nil, errors.New(errors.ErrInvalidInput, "valid until must be after valid from")
-	}
 
+	now := time.Now()
 	return &Coupon{
-		ID:            uuid.New().String(),
+		CouponID:      uuid.New().String(),
 		Code:          code,
 		Type:          couponType,
 		DiscountValue: discountValue,
-		MinPurchase:   minPurchase,
-		UsageLimit:    usageLimit,
-		UsedCount:     0,
-		ValidFrom:     validFrom,
-		ValidUntil:    validUntil,
-		Active:        true,
-		CreatedAt:     time.Now(),
+		MinOrderValue: minOrderValue,
+		UsageLimit:    -1, // unlimited
+		UsageCount:    0,
+		PerUserLimit:  -1, // unlimited
+		ValidFrom:     now,
+		ValidUntil:    now.AddDate(0, 1, 0), // 1 month default
+		IsActive:      true,
+		CreatedAt:     now,
+		UpdatedAt:     now,
 	}, nil
 }
 
-func (c *Coupon) IsValid(orderTotal float64) (bool, string) {
+// IsValid checks if coupon is currently valid
+func (c *Coupon) IsValid() bool {
 	now := time.Now()
-
-	if !c.Active {
-		return false, "coupon is inactive"
-	}
-	if now.Before(c.ValidFrom) {
-		return false, "coupon not yet valid"
-	}
-	if now.After(c.ValidUntil) {
-		return false, "coupon has expired"
-	}
-	if c.UsageLimit > 0 && c.UsedCount >= c.UsageLimit {
-		return false, "coupon usage limit reached"
-	}
-	if orderTotal < c.MinPurchase {
-		return false, "order total does not meet minimum purchase requirement"
-	}
-
-	return true, ""
+	return c.IsActive &&
+		now.After(c.ValidFrom) &&
+		now.Before(c.ValidUntil) &&
+		(c.UsageLimit == -1 || c.UsageCount < c.UsageLimit)
 }
 
-func (c *Coupon) CalculateDiscount(orderTotal float64) float64 {
+// CanApplyToOrder checks if coupon can be applied to an order
+func (c *Coupon) CanApplyToOrder(orderValue int64) bool {
+	return c.IsValid() && orderValue >= c.MinOrderValue
+}
+
+// CalculateDiscount calculates the discount amount
+func (c *Coupon) CalculateDiscount(orderValue int64) int64 {
+	if !c.CanApplyToOrder(orderValue) {
+		return 0
+	}
+
+	var discount int64
+
 	switch c.Type {
-	case CouponTypePercentage:
-		return orderTotal * (c.DiscountValue / 100.0)
-	case CouponTypeFixedAmount:
-		return c.DiscountValue
-	case CouponTypeFreeShipping:
-		return 0.0 // Shipping discount handled separately
-	default:
-		return 0.0
+	case CouponPercentage:
+		discount = (orderValue * c.DiscountValue) / 10000 // discount value is percentage * 100
+		if c.MaxDiscount > 0 && discount > c.MaxDiscount {
+			discount = c.MaxDiscount
+		}
+	case CouponFixed:
+		discount = c.DiscountValue
+		if discount > orderValue {
+			discount = orderValue
+		}
+	case CouponFreeShip:
+		// Handled by order service
+		discount = 0
+	}
+
+	return discount
+}
+
+// Use increments usage count
+func (c *Coupon) Use() error {
+	if !c.IsValid() {
+		return errors.New(errors.ErrInvalidInput, "coupon is not valid")
+	}
+
+	c.UsageCount++
+	c.UpdatedAt = time.Now()
+	return nil
+}
+
+// CouponUsage tracks individual coupon usage
+type CouponUsage struct {
+	UsageID    string
+	CouponID   string
+	UserID     string
+	OrderID    string
+	Discount   int64
+	UsedAt     time.Time
+}
+
+// NewCouponUsage creates a new usage record
+func NewCouponUsage(couponID, userID, orderID string, discount int64) *CouponUsage {
+	return &CouponUsage{
+		UsageID:  uuid.New().String(),
+		CouponID: couponID,
+		UserID:   userID,
+		OrderID:  orderID,
+		Discount: discount,
+		UsedAt:   time.Now(),
 	}
 }
 
-func (c *Coupon) IncrementUsage() {
-	c.UsedCount++
-}

@@ -8,56 +8,98 @@ import (
 	"github.com/titan-commerce/backend/pkg/logger"
 )
 
-type CouponRepository interface {
-	Save(ctx context.Context, coupon *domain.Coupon) error
-	FindByCode(ctx context.Context, code string) (*domain.Coupon, error)
-	Update(ctx context.Context, coupon *domain.Coupon) error
-}
-
 type CouponService struct {
-	repo   CouponRepository
+	repo   domain.CouponRepository
 	logger *logger.Logger
 }
 
-func NewCouponService(repo CouponRepository, logger *logger.Logger) *CouponService {
-	return &CouponService{
-		repo:   repo,
-		logger: logger,
-	}
+func NewCouponService(repo domain.CouponRepository, logger *logger.Logger) *CouponService {
+	return &CouponService{repo: repo, logger: logger}
 }
 
-// ValidateCoupon validates a coupon for an order (Query)
-func (s *CouponService) ValidateCoupon(ctx context.Context, code string, orderTotal float64) (*domain.Coupon, string, error) {
-	coupon, err := s.repo.FindByCode(ctx, code)
+// CreateCoupon creates a new coupon
+func (s *CouponService) CreateCoupon(
+	ctx context.Context,
+	code string,
+	couponType domain.CouponType,
+	discountValue, minOrderValue int64,
+) (*domain.Coupon, error) {
+	coupon, err := domain.NewCoupon(code, couponType, discountValue, minOrderValue)
 	if err != nil {
-		return nil, "coupon not found", errors.New(errors.ErrNotFound, "invalid coupon code")
+		return nil, err
 	}
 
-	valid, message := coupon.IsValid(orderTotal)
-	if !valid {
-		return coupon, message, errors.New(errors.ErrInvalidInput, message)
+	if err := s.repo.SaveCoupon(ctx, coupon); err != nil {
+		s.logger.Error(err, "failed to create coupon")
+		return nil, err
 	}
 
-	return coupon, "", nil
+	s.logger.Infof("Coupon created: code=%s, type=%s, discount=%d", code, couponType, discountValue)
+	return coupon, nil
 }
 
-// ApplyCoupon applies a coupon to an order (Command)
-func (s *CouponService) ApplyCoupon(ctx context.Context, code string, userID, orderID string, orderTotal float64) (float64, float64, error) {
-	coupon, validationMsg, err := s.ValidateCoupon(ctx, orderTotal, orderTotal)
+// ValidateCoupon validates a coupon for an order
+func (s *CouponService) ValidateCoupon(
+	ctx context.Context,
+	code, userID string,
+	orderValue int64,
+) (*domain.Coupon, int64, error) {
+	coupon, err := s.repo.GetCouponByCode(ctx, code)
 	if err != nil {
-		return 0, orderTotal, err
+		return nil, 0, errors.New(errors.ErrNotFound, "coupon not found")
 	}
 
-	// Calculate discount
-	discountAmount := coupon.CalculateDiscount(orderTotal)
-	finalTotal := orderTotal - discountAmount
-
-	// Increment usage
-	coupon.IncrementUsage()
-	if err := s.repo.Update(ctx, coupon); err != nil {
-		return 0, orderTotal, err
+	if !coupon.IsValid() {
+		return nil, 0, errors.New(errors.ErrInvalidInput, "coupon is expired or invalid")
 	}
 
-	s.logger.Infof("Coupon applied: code=%s, user=%s, order=%s, discount=%.2f", code, userID, orderID, discountAmount)
-	return discountAmount, finalTotal, nil
+	// Check per-user limit
+	if coupon.PerUserLimit > 0 {
+		usageCount, _ := s.repo.GetUserUsageCount(ctx, coupon.CouponID, userID)
+		if usageCount >= coupon.PerUserLimit {
+			return nil, 0, errors.New(errors.ErrInvalidInput, "coupon usage limit reached for this user")
+		}
+	}
+
+	discount := coupon.CalculateDiscount(orderValue)
+	if discount == 0 {
+		return nil, 0, errors.New(errors.ErrInvalidInput, "minimum order value not met")
+	}
+
+	return coupon, discount, nil
 }
+
+// ApplyCoupon applies a coupon to an order
+func (s *CouponService) ApplyCoupon(
+	ctx context.Context,
+	couponID, userID, orderID string,
+	discount int64,
+) error {
+	coupon, err := s.repo.GetCoupon(ctx, couponID)
+	if err != nil {
+		return err
+	}
+
+	if err := coupon.Use(); err != nil {
+		return err
+	}
+
+	// Save usage
+	usage := domain.NewCouponUsage(couponID, userID, orderID, discount)
+	if err := s.repo.SaveUsage(ctx, usage); err != nil {
+		s.logger.Error(err, "failed to save coupon usage")
+		return err
+	}
+
+	// Update coupon
+	if err := s.repo.UpdateCoupon(ctx, coupon); err != nil {
+		s.logger.Error(err, "failed to update coupon")
+		return err
+	}
+
+	s.logger.Infof("Coupon applied: id=%s, user=%s, order=%s, discount=%d",
+		couponID, userID, orderID, discount)
+
+	return nil
+}
+

@@ -7,54 +7,132 @@ import (
 	"github.com/titan-commerce/backend/pkg/errors"
 )
 
+// FlashSaleStatus represents the status of a flash sale
+type FlashSaleStatus string
+
+const (
+	FlashSaleScheduled FlashSaleStatus = "SCHEDULED"
+	FlashSaleLive      FlashSaleStatus = "LIVE"
+	FlashSaleEnded     FlashSaleStatus = "ENDED"
+	FlashSaleSoldOut   FlashSaleStatus = "SOLD_OUT"
+)
+
+// FlashSale represents a limited-time high-concurrency sale event
 type FlashSale struct {
-	ID             string
-	ProductID      string
-	ProductName    string
-	OriginalPrice  float64
-	FlashPrice     float64
-	TotalStock     int
-	RemainingStock int
-	StartTime      time.Time
-	EndTime        time.Time
-	IsActive       bool
-	CreatedAt      time.Time
+	FlashSaleID      string
+	Name             string
+	Description      string
+	Status           FlashSaleStatus
+	StartTime        time.Time
+	EndTime          time.Time
+	TotalStock       int
+	SoldCount        int
+	ViewCount        int
+	AddToCartCount   int
+	ConversionRate   float64
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
-func NewFlashSale(productID, productName string, originalPrice, flashPrice float64, stock int, startTime, endTime time.Time) (*FlashSale, error) {
-	if productID == "" {
-		return nil, errors.New(errors.ErrInvalidInput, "product ID is required")
+// FlashSaleProduct represents a product in a flash sale
+type FlashSaleProduct struct {
+	ProductID     string
+	FlashSaleID   string
+	OriginalPrice int64
+	FlashPrice    int64
+	Stock         int
+	MaxPerUser    int
+	SoldCount     int
+}
+
+// NewFlashSale creates a new flash sale
+func NewFlashSale(name, description string, startTime, endTime time.Time, totalStock int) (*FlashSale, error) {
+	if name == "" {
+		return nil, errors.New(errors.ErrInvalidInput, "flash sale name is required")
 	}
-	if flashPrice >= originalPrice {
-		return nil, errors.New(errors.ErrInvalidInput, "flash price must be less than original price")
+	if startTime.After(endTime) {
+		return nil, errors.New(errors.ErrInvalidInput, "start time must be before end time")
 	}
-	if stock <= 0 {
-		return nil, errors.New(errors.ErrInvalidInput, "stock must be positive")
-	}
-	if endTime.Before(startTime) {
-		return nil, errors.New(errors.ErrInvalidInput, "end time must be after start time")
+	if totalStock <= 0 {
+		return nil, errors.New(errors.ErrInvalidInput, "total stock must be positive")
 	}
 
+	now := time.Now()
 	return &FlashSale{
-		ID:             uuid.New().String(),
-		ProductID:      productID,
-		ProductName:    productName,
-		OriginalPrice:  originalPrice,
-		FlashPrice:     flashPrice,
-		TotalStock:     stock,
-		RemainingStock: stock,
+		FlashSaleID:    uuid.New().String(),
+		Name:           name,
+		Description:    description,
+		Status:         FlashSaleScheduled,
 		StartTime:      startTime,
 		EndTime:        endTime,
-		IsActive:       time.Now().After(startTime) && time.Now().Before(endTime),
-		CreatedAt:      time.Now(),
+		TotalStock:     totalStock,
+		SoldCount:      0,
+		ViewCount:      0,
+		AddToCartCount: 0,
+		CreatedAt:      now,
+		UpdatedAt:      now,
 	}, nil
 }
 
-func (f *FlashSale) IsLive() bool {
-	now := time.Now()
-	return now.After(f.StartTime) && now.Before(f.EndTime) && f.RemainingStock > 0
+// Start starts the flash sale
+func (f *FlashSale) Start() error {
+	if time.Now().Before(f.StartTime) {
+		return errors.New(errors.ErrInvalidInput, "flash sale start time not reached")
+	}
+
+	f.Status = FlashSaleLive
+	f.UpdatedAt = time.Now()
+	return nil
 }
 
-func (f *FlashSale) GetDiscountPercentage() int {
-	return int(((f.OriginalPrice - f.FlashPrice) / f.OriginalPrice) * 100)
+// RecordSale records a sale
+func (f *FlashSale) RecordSale(quantity int) error {
+	if f.Status != FlashSaleLive {
+		return errors.New(errors.ErrInvalidInput, "flash sale is not live")
+	}
+
+	if f.SoldCount+quantity > f.TotalStock {
+		return errors.New(errors.ErrInvalidInput, "insufficient stock")
+	}
+
+	f.SoldCount += quantity
+	f.UpdatedAt = time.Now()
+
+	if f.SoldCount >= f.TotalStock {
+		f.Status = FlashSaleSoldOut
+	}
+
+	f.calculateConversion()
+	return nil
 }
+
+// RecordView increments view count
+func (f *FlashSale) RecordView() {
+	f.ViewCount++
+}
+
+// RecordAddToCart increments add to cart count
+func (f *FlashSale) RecordAddToCart() {
+	f.AddToCartCount++
+}
+
+func (f *FlashSale) calculateConversion() {
+	if f.ViewCount > 0 {
+		f.ConversionRate = float64(f.SoldCount) / float64(f.ViewCount) * 100
+	}
+}
+
+// IsActive checks if flash sale is currently active
+func (f *FlashSale) IsActive() bool {
+	now := time.Now()
+	return f.Status == FlashSaleLive &&
+		now.After(f.StartTime) &&
+		now.Before(f.EndTime) &&
+		f.SoldCount < f.TotalStock
+}
+
+// GetRemainingStock returns available stock
+func (f *FlashSale) GetRemainingStock() int {
+	return f.TotalStock - f.SoldCount
+}
+
