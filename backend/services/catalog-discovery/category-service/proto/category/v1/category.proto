@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package category.v1;
+
+option go_package = "github.com/titan-commerce/backend/category-service/proto/category/v1;categoryv1";
+
+service CategoryService {
+  rpc CreateCategory(CreateCategoryRequest) returns (CreateCategoryResponse);
+  rpc GetCategory(GetCategoryRequest) returns (GetCategoryResponse);
+  rpc ListCategories(ListCategoriesRequest) returns (ListCategoriesResponse);
+  rpc GetCategoryTree(GetCategoryTreeRequest) returns (GetCategoryTreeResponse);
+  rpc UpdateCategory(UpdateCategoryRequest) returns (UpdateCategoryResponse);
+}
+
+message Category {
+  string category_id = 1;
+  string name = 2;
+  string slug = 3;
+  string parent_id = 4;
+  int32 level = 5;
+  string icon_url = 6;
+  int32 product_count = 7;
+  repeated Category children = 8;
+}
+
+message CreateCategoryRequest {
+  string name = 1;
+  string parent_id = 2;
+  string icon_url = 3;
+}
+
+message CreateCategoryResponse {
+  Category category = 1;
+}
+
+message GetCategoryRequest {
+  string category_id = 1;
+}
+
+message GetCategoryResponse {
+  Category category = 1;
+}
+
+message ListCategoriesRequest {
+  string parent_id = 1;  // Empty for root categories
+  int32 page_size = 2;
+}
+
+message ListCategoriesResponse {
+  repeated Category categories = 1;
+}
+
+message GetCategoryTreeRequest {
+  string root_category_id = 1;  // Empty for entire tree
+  int32 max_depth = 2;
+}
+
+message GetCategoryTreeResponse {
+  repeated Category categories = 1;
+}
+
+message UpdateCategoryRequest {
+  string category_id = 1;
+  string name = 2;
+  string icon_url = 3;
+}
+
+message UpdateCategoryResponse {
+  Category category = 1;
+}

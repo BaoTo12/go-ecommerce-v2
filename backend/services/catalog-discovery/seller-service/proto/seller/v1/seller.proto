@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package seller.v1;
+
+option go_package = "github.com/titan-commerce/backend/seller-service/proto/seller/v1;sellerv1";
+
+import "google/protobuf/timestamp.proto";
+
+service SellerService {
+  rpc RegisterSeller(RegisterSellerRequest) returns (RegisterSellerResponse);
+  rpc GetSeller(GetSellerRequest) returns (GetSellerResponse);
+  rpc UpdateSellerStatus(UpdateSellerStatusRequest) returns (UpdateSellerStatusResponse);
+  rpc GetSellerStats(GetSellerStatsRequest) returns (GetSellerStatsResponse);
+}
+
+enum SellerStatus {
+  SELLER_STATUS_UNSPECIFIED = 0;
+  SELLER_STATUS_PENDING_VERIFICATION = 1;
+  SELLER_STATUS_VERIFIED = 2;
+  SELLER_STATUS_ACTIVE = 3;
+  SELLER_STATUS_SUSPENDED = 4;
+}
+
+message Seller {
+  string seller_id = 1;
+  string user_id = 2;
+  string business_name = 3;
+  string business_type = 4;  // Individual, Company
+  string tax_id = 5;
+  string address = 6;
+  string phone = 7;
+  string bank_account_id = 8;
+  SellerStatus status = 9;
+  double rating = 10;
+  int32 total_products = 11;
+  int32 total_sales = 12;
+  google.protobuf.Timestamp joined_at = 13;
+}
+
+message RegisterSellerRequest {
+  string user_id = 1;
+  string business_name = 2;
+  string business_type = 3;
+  string tax_id = 4;
+  string address = 5;
+  string phone = 6;
+  string bank_account_id = 7;
+  repeated string kyc_documents = 8;  // URLs to KYC documents
+}
+
+message RegisterSellerResponse {
+  Seller seller = 1;
+}
+
+message GetSellerRequest {
+  string seller_id = 1;
+}
+
+message GetSellerResponse {
+  Seller seller = 1;
+}
+
+message UpdateSellerStatusRequest {
+  string seller_id = 1;
+  SellerStatus status = 2;
+  string reason = 3;
+}
+
+message UpdateSellerStatusResponse {
+  Seller seller = 1;
+}
+
+message GetSellerStatsRequest {
+  string seller_id = 1;
+}
+
+message GetSellerStatsResponse {
+  int32 total_products = 1;
+  int32 total_sales = 2;
+  double total_revenue = 3;
+  double average_rating = 4;
+  int32 total_reviews = 5;
+}

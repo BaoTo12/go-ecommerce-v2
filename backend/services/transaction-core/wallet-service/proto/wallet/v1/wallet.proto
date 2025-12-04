@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package wallet.v1;
+
+option go_package = "github.com/titan-commerce/backend/wallet-service/proto/wallet/v1;walletv1";
+
+import "google/protobuf/timestamp.proto";
+
+service WalletService {
+  rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
+  rpc Deposit(DepositRequest) returns (DepositResponse);
+  rpc Withdraw(WithdrawRequest) returns (WithdrawResponse);
+  rpc Transfer(TransferRequest) returns (TransferResponse);
+  rpc HoldFunds(HoldFundsRequest) returns (HoldFundsResponse);
+  rpc ReleaseFunds(ReleaseFundsRequest) returns (ReleaseFundsResponse);
+  rpc GetTransactions(GetTransactionsRequest) returns (GetTransactionsResponse);
+}
+
+enum TransactionType {
+  TRANSACTION_TYPE_UNSPECIFIED = 0;
+  TRANSACTION_TYPE_DEPOSIT = 1;
+  TRANSACTION_TYPE_WITHDRAWAL = 2;
+  TRANSACTION_TYPE_TRANSFER = 3;
+  TRANSACTION_TYPE_HOLD = 4;
+  TRANSACTION_TYPE_RELEASE = 5;
+  TRANSACTION_TYPE_REFUND = 6;
+}
+
+message Wallet {
+  string wallet_id = 1;
+  string user_id = 2;
+  double available_balance = 3;
+  double held_balance = 4;  // Escrow
+  double total_balance = 5;
+  string currency = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
+
+message Transaction {
+  string transaction_id = 1;
+  string wallet_id = 2;
+  TransactionType type = 3;
+  double amount = 4;
+  string description = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message GetBalanceRequest {
+  string user_id = 1;
+}
+
+message GetBalanceResponse {
+  Wallet wallet = 1;
+}
+
+message DepositRequest {
+  string user_id = 1;
+  double amount = 2;
+  string payment_method_id = 3;
+}
+
+message DepositResponse {
+  Wallet wallet = 1;
+  Transaction transaction = 2;
+}
+
+message WithdrawRequest {
+  string user_id = 1;
+  double amount = 2;
+  string bank_account_id = 3;
+}
+
+message WithdrawResponse {
+  Wallet wallet = 1;
+  Transaction transaction = 2;
+}
+
+message TransferRequest {
+  string from_user_id = 1;
+  string to_user_id = 2;
+  double amount = 3;
+  string description = 4;
+}
+
+message TransferResponse {
+  bool success = 1;
+  Transaction transaction = 2;
+}
+
+message HoldFundsRequest {
+  string user_id = 1;
+  double amount = 2;
+  string order_id = 3;  // Reference for escrow
+}
+
+message HoldFundsResponse {
+  bool success = 1;
+  string hold_id = 2;
+}
+
+message ReleaseFundsRequest {
+  string hold_id = 1;
+  bool release_to_user = 2;  // true = refund, false = complete transaction
+}
+
+message ReleaseFundsResponse {
+  bool success = 1;
+}
+
+message GetTransactionsRequest {
+  string user_id = 1;
+  int32 page_size = 2;
+  int32 page = 3;
+}
+
+message GetTransactionsResponse {
+  repeated Transaction transactions = 1;
+  int32 total_count = 2;
+}
