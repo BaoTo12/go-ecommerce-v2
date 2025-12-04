@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package flashsale.v1;
+
+option go_package = "github.com/titan-commerce/backend/flash-sale-service/proto/flashsale/v1;flashsalev1";
+
+import "google/protobuf/timestamp.proto";
+
+service FlashSaleService {
+  rpc CreateFlashSale(CreateFlashSaleRequest) returns (CreateFlashSaleResponse);
+  rpc PurchaseItem(PurchaseItemRequest) returns (PurchaseItemResponse);
+  rpc GetFlashSale(GetFlashSaleRequest) returns (GetFlashSaleResponse);
+  rpc ListActiveFlashSales(ListActiveFlashSalesRequest) returns (ListActiveFlashSalesResponse);
+}
+
+message FlashSale {
+  string flash_sale_id = 1;
+  string product_id = 2;
+  string product_name = 3;
+  double original_price = 4;
+  double flash_price = 5;
+  int32 total_stock = 6;
+  int32 remaining_stock = 7;
+  google.protobuf.Timestamp start_time = 8;
+  google.protobuf.Timestamp end_time = 9;
+  bool is_active = 10;
+}
+
+message CreateFlashSaleRequest {
+  string product_id = 1;
+  string product_name = 2;
+  double original_price = 3;
+  double flash_price = 4;
+  int32 stock = 5;
+  google.protobuf.Timestamp start_time = 6;
+  google.protobuf.Timestamp end_time = 7;
+}
+
+message CreateFlashSaleResponse {
+  FlashSale flash_sale = 1;
+}
+
+message PurchaseItemRequest {
+  string flash_sale_id = 1;
+  string user_id = 2;
+  int32 quantity = 3;
+  string proof_of_work = 4;  // SHA256 hash challenge solution
+}
+
+message PurchaseItemResponse {
+  bool success = 1;
+  string reservation_id = 2;
+  string message = 3;
+}
+
+message GetFlashSaleRequest {
+  string flash_sale_id = 1;
+}
+
+message GetFlashSaleResponse {
+  FlashSale flash_sale = 1;
+}
+
+message ListActiveFlashSalesRequest {
+  int32 page_size = 1;
+}
+
+message ListActiveFlashSalesResponse {
+  repeated FlashSale flash_sales = 1;
+}
