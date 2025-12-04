@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package checkout.v1;
+
+option go_package = "github.com/titan-commerce/backend/checkout-service/proto/checkout/v1;checkout
+
+v1";
+
+import "google/protobuf/timestamp.proto";
+
+service CheckoutService {
+  rpc InitiateCheckout(InitiateCheckoutRequest) returns (InitiateCheckoutResponse);
+  rpc GetCheckoutStatus(GetCheckoutStatusRequest) returns (GetCheckoutStatusResponse);
+  rpc CancelCheckout(CancelCheckoutRequest) returns (CancelCheckoutResponse);
+}
+
+enum CheckoutStatus {
+  CHECKOUT_STATUS_UNSPECIFIED = 0;
+  CHECKOUT_STATUS_INITIATED = 1;
+  CHECKOUT_STATUS_RESERVING_INVENTORY = 2;
+  CHECKOUT_STATUS_PROCESSING_PAYMENT = 3;
+  CHECKOUT_STATUS_CREATING_ORDER = 4;
+  CHECKOUT_STATUS_COMPLETED = 5;
+  CHECKOUT_STATUS_FAILED = 6;
+  CHECKOUT_STATUS_COMPENSATING = 7;
+}
+
+message CheckoutSession {
+  string session_id = 1;
+  string user_id = 2;
+  repeated string product_ids = 3;
+  double total_amount = 4;
+  CheckoutStatus status = 5;
+  string error_message = 6;
+  string order_id = 7;
+  string payment_id = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message InitiateCheckoutRequest {
+  string user_id = 1;
+  string shipping_address = 2;
+  string payment_method_id = 3;
+}
+
+message InitiateCheckoutResponse {
+  CheckoutSession session = 1;
+}
+
+message GetCheckoutStatusRequest {
+  string session_id = 1;
+}
+
+message GetCheckoutStatusResponse {
+  CheckoutSession session = 1;
+}
+
+message CancelCheckoutRequest {
+  string session_id = 1;
+}
+
+message CancelCheckoutResponse {
+  bool success = 1;
+}
