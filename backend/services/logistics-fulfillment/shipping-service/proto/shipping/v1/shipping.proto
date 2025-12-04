@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package shipping.v1;
+
+option go_package = "github.com/titan-commerce/backend/shipping-service/proto/shipping/v1;shippingv1";
+
+import "google/protobuf/timestamp.proto";
+
+service ShippingService {
+  rpc CreateShipment(CreateShipmentRequest) returns (CreateShipmentResponse);
+  rpc GetShipment(GetShipmentRequest) returns (GetShipmentResponse);
+  rpc UpdateStatus(UpdateStatusRequest) returns (UpdateStatusResponse);
+  rpc CalculateShippingCost(CalculateShippingCostRequest) returns (CalculateShippingCostResponse);
+}
+
+enum ShipmentStatus {
+  SHIPMENT_STATUS_UNSPECIFIED = 0;
+  SHIPMENT_STATUS_PENDING = 1;
+  SHIPMENT_STATUS_PICKED_UP = 2;
+  SHIPMENT_STATUS_IN_TRANSIT = 3;
+  SHIPMENT_STATUS_OUT_FOR_DELIVERY = 4;
+  SHIPMENT_STATUS_DELIVERED = 5;
+  SHIPMENT_STATUS_RETURNED = 6;
+}
+
+message Shipment {
+  string shipment_id = 1;
+  string order_id = 2;
+  string carrier = 3;  // e.g., "DHL", "FedEx", "UPS"
+  string tracking_number = 4;
+  ShipmentStatus status = 5;
+  string origin_address = 6;
+  string destination_address = 7;
+  double weight = 8;
+  double shipping_cost = 9;
+  google.protobuf.Timestamp estimated_delivery = 10;
+  google.protobuf.Timestamp created_at = 11;
+}
+
+message CreateShipmentRequest {
+  string order_id = 1;
+  string carrier = 2;
+  string origin_address = 3;
+  string destination_address = 4;
+  double weight = 5;
+}
+
+message CreateShipmentResponse {
+  Shipment shipment = 1;
+}
+
+message GetShipmentRequest {
+  string shipment_id = 1;
+}
+
+message GetShipmentResponse {
+  Shipment shipment = 1;
+}
+
+message UpdateStatusRequest {
+  string shipment_id = 1;
+  ShipmentStatus status = 2;
+}
+
+message UpdateStatusResponse {
+  Shipment shipment = 1;
+}
+
+message CalculateShippingCostRequest {
+  string origin_address = 1;
+  string destination_address = 2;
+  double weight = 3;
+  string carrier = 4;
+}
+
+message CalculateShippingCostResponse {
+  double cost = 1;
+  int32 estimated_days = 2;
+}
