@@ -9,6 +9,10 @@ import (
 
 	"github.com/titan-commerce/backend/payment-service/internal/application"
 	"github.com/titan-commerce/backend/payment-service/internal/domain"
+	"github.com/titan-commerce/backend/payment-service/internal/infrastructure/gateway/mock"
+	"github.com/titan-commerce/backend/payment-service/internal/infrastructure/postgres"
+	"github.com/titan-commerce/backend/payment-service/internal/interface/grpc"
+	pb "github.com/titan-commerce/backend/payment-service/proto/payment/v1"
 	"github.com/titan-commerce/backend/pkg/config"
 	"github.com/titan-commerce/backend/pkg/logger"
 	grpcLib "google.golang.org/grpc"
@@ -30,22 +34,22 @@ func main() {
 
 	log.Info("Payment Service starting...")
 
-	// TODO: Initialize PostgreSQL repository
-	// paymentRepo := postgres.NewPaymentRepository(cfg.DatabaseURL, log)
+	// Initialize PostgreSQL repository
+	paymentRepo, err := postgres.NewPaymentRepository(cfg.DatabaseURL, log)
+	if err != nil {
+		log.Fatal(err, "Failed to initialize payment repository")
+	}
 
-	// Initialize payment gateways (mock for now)
-	// In production, initialize real gateway adapters:
-	// stripeGateway := stripe.NewStripeGateway(cfg.StripeSecretKey, log)
-	// paypalGateway := paypal.NewPayPalGateway(cfg.PayPalClientID, cfg.PayPalSecret, log)
-	// adyenGateway := adyen.NewAdyenGateway(cfg.AdyenAPIKey, log)
-
-	gateways := make(map[domain.PaymentGateway]domain.PaymentGateway)
-	// gateways[domain.PaymentGatewayStripe] = stripeGateway
-	// gateways[domain.PaymentGatewayPayPal] = paypalGateway
-	// gateways[domain.PaymentGatewayAdyen] = adyenGateway
+	// Initialize payment gateways
+	mockGateway := mock.NewMockPaymentGateway(log)
+	gateways := map[domain.PaymentGateway]domain.PaymentGateway{
+		domain.PaymentGatewayStripe: mockGateway,
+		domain.PaymentGatewayPayPal: mockGateway,
+		domain.PaymentGatewayAdyen:  mockGateway,
+	}
 
 	// Initialize application service
-	// paymentService := application.NewPaymentService(paymentRepo, gateways, log)
+	paymentService := application.NewPaymentService(paymentRepo, gateways, log)
 
 	// Initialize gRPC server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GRPCPort))
@@ -54,8 +58,7 @@ func main() {
 	}
 
 	grpcServer := grpcLib.NewServer()
-	// TODO: Register gRPC handler
-	// paymentv1.RegisterPaymentServiceServer(grpcServer, handler.NewPaymentServiceServer(paymentService, log))
+	pb.RegisterPaymentServiceServer(grpcServer, grpc.NewPaymentServiceServer(paymentService, log))
 
 	// Start server
 	go func() {
