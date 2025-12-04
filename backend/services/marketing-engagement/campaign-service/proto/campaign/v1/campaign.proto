@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package campaign.v1;
+
+option go_package = "github.com/titan-commerce/backend/campaign-service/proto/campaign/v1;campaignv1";
+
+import "google/protobuf/timestamp.proto";
+
+service CampaignService {
+  rpc CreateCampaign(CreateCampaignRequest) returns (CreateCampaignResponse);
+  rpc GetCampaign(GetCampaignRequest) returns (GetCampaignResponse);
+  rpc ListActiveCampaigns(ListActiveCampaignsRequest) returns (ListActiveCampaignsResponse);
+  rpc TrackConversion(TrackConversionRequest) returns (TrackConversionResponse);
+}
+
+enum CampaignType {
+  CAMPAIGN_TYPE_UNSPECIFIED = 0;
+  CAMPAIGN_TYPE_FLASH_SALE = 1;
+  CAMPAIGN_TYPE_SEASONAL = 2;  // e.g., 11.11, Black Friday
+  CAMPAIGN_TYPE_CATEGORY_SALE = 3;
+  CAMPAIGN_TYPE_NEW_USER = 4;
+}
+
+message Campaign {
+  string campaign_id = 1;
+  string name = 2;
+  string description = 3;
+  CampaignType type = 4;
+  google.protobuf.Timestamp start_time = 5;
+  google.protobuf.Timestamp end_time = 6;
+  int32 target_users = 7;
+  int32 reached_users = 8;
+  int32 conversions = 9;
+  double conversion_rate = 10;
+  bool active = 11;
+}
+
+message CreateCampaignRequest {
+  string name = 1;
+  string description = 2;
+  CampaignType type = 3;
+  google.protobuf.Timestamp start_time = 4;
+  google.protobuf.Timestamp end_time = 5;
+  repeated string target_user_segments = 6;
+}
+
+message CreateCampaignResponse {
+  Campaign campaign = 1;
+}
+
+message GetCampaignRequest {
+  string campaign_id = 1;
+}
+
+message GetCampaignResponse {
+  Campaign campaign = 1;
+}
+
+message ListActiveCampaignsRequest {
+  int32 page_size = 1;
+}
+
+message ListActiveCampaignsResponse {
+  repeated Campaign campaigns = 1;
+}
+
+message TrackConversionRequest {
+  string campaign_id = 1;
+  string user_id = 2;
+  string order_id = 3;
+}
+
+message TrackConversionResponse {
+  bool success = 1;
+}

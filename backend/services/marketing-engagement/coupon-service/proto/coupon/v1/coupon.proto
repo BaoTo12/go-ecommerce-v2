@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package coupon.v1;
+
+option go_package = "github.com/titan-commerce/backend/coupon-service/proto/coupon/v1;couponv1";
+
+import "google/protobuf/timestamp.proto";
+
+service CouponService {
+  rpc CreateCoupon(CreateCouponRequest) returns (CreateCouponResponse);
+  rpc ValidateCoupon(ValidateCouponRequest) returns (ValidateCouponResponse);
+  rpc ApplyCoupon(ApplyCouponRequest) returns (ApplyCouponResponse);
+  rpc GetUserCoupons(GetUserCouponsRequest) returns (GetUserCouponsResponse);
+}
+
+enum CouponType {
+  COUPON_TYPE_UNSPECIFIED = 0;
+  COUPON_TYPE_PERCENTAGE = 1;  // e.g., 20% off
+  COUPON_TYPE_FIXED_AMOUNT = 2;  // e.g., $10 off
+  COUPON_TYPE_FREE_SHIPPING = 3;
+}
+
+message Coupon {
+  string coupon_id = 1;
+  string code = 2;
+  CouponType type = 3;
+  double discount_value = 4;  // percentage or amount
+  double min_purchase = 5;
+  int32 usage_limit = 6;
+  int32 used_count = 7;
+  google.protobuf.Timestamp valid_from = 8;
+  google.protobuf.Timestamp valid_until = 9;
+  bool active = 10;
+}
+
+message CreateCouponRequest {
+  string code = 1;
+  CouponType type = 2;
+  double discount_value = 3;
+  double min_purchase = 4;
+  int32 usage_limit = 5;
+  google.protobuf.Timestamp valid_from = 6;
+  google.protobuf.Timestamp valid_until = 7;
+}
+
+message CreateCouponResponse {
+  Coupon coupon = 1;
+}
+
+message ValidateCouponRequest {
+  string code = 1;
+  string user_id = 2;
+  double order_total = 3;
+}
+
+message ValidateCouponResponse {
+  bool valid = 1;
+  string error_message = 2;
+  Coupon coupon = 3;
+}
+
+message ApplyCouponRequest {
+  string code = 1;
+  string user_id = 2;
+  string order_id = 3;
+  double order_total = 4;
+}
+
+message ApplyCouponResponse {
+  bool success = 1;
+  double discount_amount = 2;
+  double final_total = 3;
+}
+
+message GetUserCouponsRequest {
+  string user_id = 1;
+}
+
+message GetUserCouponsResponse {
+  repeated Coupon coupons = 1;
+}

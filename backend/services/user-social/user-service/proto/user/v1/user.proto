@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package user.v1;
+
+option go_package = "github.com/titan-commerce/backend/user-service/proto/user/v1;userv1";
+
+import "google/protobuf/timestamp.proto";
+
+service UserService {
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
+  rpc AddAddress(AddAddressRequest) returns (AddAddressResponse);
+  rpc GetAddresses(GetAddressesRequest) returns (GetAddressesResponse);
+  rpc UpdatePreferences(UpdatePreferencesRequest) returns (UpdatePreferencesResponse);
+}
+
+message User {
+  string user_id = 1;
+  string email = 2;
+  string name = 3;
+  string phone = 4;
+  string avatar_url = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message Address {
+  string address_id = 1;
+  string user_id = 2;
+  string full_name = 3;
+  string phone = 4;
+  string street_address = 5;
+  string city = 6;
+  string postal_code = 7;
+  string country = 8;
+  bool is_default = 9;
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message GetUserResponse {
+  User user = 1;
+}
+
+message UpdateProfileRequest {
+  string user_id = 1;
+  string name = 2;
+  string phone = 3;
+  string avatar_url = 4;
+}
+
+message UpdateProfileResponse {
+  User user = 1;
+}
+
+message AddAddressRequest {
+  string user_id = 1;
+  string full_name = 2;
+  string phone = 3;
+  string street_address = 4;
+  string city = 5;
+  string postal_code = 6;
+  string country = 7;
+  bool is_default = 8;
+}
+
+message AddAddressResponse {
+  Address address = 1;
+}
+
+message GetAddressesRequest {
+  string user_id = 1;
+}
+
+message GetAddressesResponse {
+  repeated Address addresses = 1;
+}
+
+message UpdatePreferencesRequest {
+  string user_id = 1;
+  bool email_notifications = 2;
+  bool sms_notifications = 3;
+  string preferred_language = 4;
+}
+
+message UpdatePreferencesResponse {
+  bool success = 1;
+}
