@@ -9,10 +9,9 @@ import (
 
 type CategoryRepository interface {
 	Save(ctx context.Context, category *domain.Category) error
-	FindByID(ctx context.Context, categoryID string) (*domain.Category, error)
-	FindByParentID(ctx context.Context, parentID string, pageSize int) ([]*domain.Category, error)
-	FindAll(ctx context.Context) ([]*domain.Category, error)
-	Update(ctx context.Context, category *domain.Category) error
+	FindByID(ctx context.Context, id string) (*domain.Category, error)
+	List(ctx context.Context, page, pageSize int) ([]*domain.Category, int, error)
+	GetAll(ctx context.Context) ([]*domain.Category, error)
 }
 
 type CategoryService struct {
@@ -27,18 +26,8 @@ func NewCategoryService(repo CategoryRepository, logger *logger.Logger) *Categor
 	}
 }
 
-// CreateCategory creates a new category (Command)
-func (s *CategoryService) CreateCategory(ctx context.Context, name, parentID, iconURL string) (*domain.Category, error) {
-	level := 0
-	if parentID != "" {
-		parent, err := s.repo.FindByID(ctx, parentID)
-		if err != nil {
-			return nil, err
-		}
-		level = parent.Level + 1
-	}
-
-	category, err := domain.NewCategory(name, parentID, iconURL, level)
+func (s *CategoryService) CreateCategory(ctx context.Context, name, description, parentID, imageURL string) (*domain.Category, error) {
+	category, err := domain.NewCategory(name, description, parentID, imageURL)
 	if err != nil {
 		return nil, err
 	}
@@ -48,48 +37,50 @@ func (s *CategoryService) CreateCategory(ctx context.Context, name, parentID, ic
 		return nil, err
 	}
 
-	s.logger.Infof("Category created: %s (%s)", category.Name, category.ID)
+	s.logger.Infof("Category created: %s", category.Name)
 	return category, nil
 }
 
-// GetCategory retrieves a category (Query)
-func (s *CategoryService) GetCategory(ctx context.Context, categoryID string) (*domain.Category, error) {
-	return s.repo.FindByID(ctx, categoryID)
+func (s *CategoryService) GetCategory(ctx context.Context, id string) (*domain.Category, error) {
+	return s.repo.FindByID(ctx, id)
 }
 
-// ListCategories lists categories by parent (Query)
-func (s *CategoryService) ListCategories(ctx context.Context, parentID string, pageSize int) ([]*domain.Category, error) {
-	return s.repo.FindByParentID(ctx, parentID, pageSize)
+func (s *CategoryService) ListCategories(ctx context.Context, page, pageSize int) ([]*domain.Category, int, error) {
+	return s.repo.List(ctx, page, pageSize)
 }
 
-// GetCategoryTree builds hierarchical tree (Query)
-func (s *CategoryService) GetCategoryTree(ctx context.Context, rootID string, maxDepth int) ([]*domain.Category, error) {
-	// Simplified - returns all categories
-	// In production, build actual tree structure with children
-	return s.repo.FindAll(ctx)
-}
-
-// UpdateCategory updates category details (Command)
-func (s *CategoryService) UpdateCategory(ctx context.Context, categoryID, name, iconURL string) (*domain.Category, error) {
-	category, err := s.repo.FindByID(ctx, categoryID)
+func (s *CategoryService) GetCategoryTree(ctx context.Context) ([]*domain.CategoryNode, error) {
+	allCategories, err := s.repo.GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if name != "" {
-		if err := category.UpdateName(name); err != nil {
-			return nil, err
+	// Build tree
+	categoryMap := make(map[string]*domain.CategoryNode)
+	var roots []*domain.CategoryNode
+
+	// First pass: create nodes
+	for _, c := range allCategories {
+		categoryMap[c.ID] = &domain.CategoryNode{
+			Category: c,
+			Children: []*domain.CategoryNode{},
 		}
 	}
 
-	if iconURL != "" {
-		category.UpdateIcon(iconURL)
+	// Second pass: link children
+	for _, c := range allCategories {
+		node := categoryMap[c.ID]
+		if c.ParentID == "" {
+			roots = append(roots, node)
+		} else {
+			if parent, ok := categoryMap[c.ParentID]; ok {
+				parent.Children = append(parent.Children, node)
+			} else {
+				// Parent not found, treat as root (or handle error)
+				roots = append(roots, node)
+			}
+		}
 	}
 
-	if err := s.repo.Update(ctx, category); err != nil {
-		return nil, err
-	}
-
-	s.logger.Infof("Category updated: %s", categoryID)
-	return category, nil
+	return roots, nil
 }
