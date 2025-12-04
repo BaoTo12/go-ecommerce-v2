@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package gamification.v1;
+
+option go_package = "github.com/titan-commerce/backend/gamification-service/proto/gamification/v1;gamificationv1";
+
+import "google/protobuf/timestamp.proto";
+
+service GamificationService {
+  rpc GetUserCoins(GetUserCoinsRequest) returns (GetUserCoinsResponse);
+  rpc PlayShakeGame(PlayShakeGameRequest) returns (PlayShakeGameResponse);
+  rpc DailyCheckIn(DailyCheckInRequest) returns (DailyCheckInResponse);
+  rpc PlayLuckyDraw(PlayLuckyDrawRequest) returns (PlayLuckyDrawResponse);
+  rpc GetMissions(GetMissionsRequest) returns (GetMissionsResponse);
+  rpc RedeemCoins(RedeemCoinsRequest) returns (RedeemCoinsResponse);
+}
+
+message UserCoins {
+  string user_id = 1;
+  int32 balance = 2;
+  int32 lifetime_earned = 3;
+  int32 lifetime_spent = 4;
+}
+
+message Mission {
+  string mission_id = 1;
+  string title = 2;
+  string description = 3;
+  int32 reward_coins = 4;
+  int32 current_progress = 5;
+  int32 target_progress = 6;
+  bool completed = 7;
+}
+
+message GetUserCoinsRequest {
+  string user_id = 1;
+}
+
+message GetUserCoinsResponse {
+  UserCoins coins = 1;
+}
+
+message PlayShakeGameRequest {
+  string user_id = 1;
+  float shake_intensity = 2;  // 0-100 from gyroscope
+  string device_fingerprint = 3;  // Prevent cheating
+}
+
+message PlayShakeGameResponse {
+  int32 coins_won = 1;
+  string message = 2;
+}
+
+message DailyCheckInRequest {
+  string user_id = 1;
+}
+
+message DailyCheckInResponse {
+  int32 coins_won = 1;
+  int32 streak_days = 2;
+  google.protobuf.Timestamp next_check_in = 3;
+}
+
+message PlayLuckyDrawRequest {
+  string user_id = 1;
+  int32 cost_coins = 2;  // 50 coins per spin
+}
+
+message PlayLuckyDrawResponse {
+  int32 coins_won = 1;
+  string prize = 2;  // e.g., "100 coins", "Free shipping voucher"
+}
+
+message GetMissionsRequest {
+  string user_id = 1;
+}
+
+message GetMissionsResponse {
+  repeated Mission missions = 1;
+}
+
+message RedeemCoinsRequest {
+  string user_id = 1;
+  int32 coins_to_redeem = 2;
+  string redemption_type = 3;  // "discount", "voucher", "lucky_draw_entry"
+}
+
+message RedeemCoinsResponse {
+  bool success = 1;
+  string voucher_code = 2;
+  int32 remaining_balance = 3;
+}
