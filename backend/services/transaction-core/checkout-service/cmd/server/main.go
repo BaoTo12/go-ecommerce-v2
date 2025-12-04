@@ -7,7 +7,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/titan-commerce/backend/checkout-service/internal/domain"
+	"github.com/titan-commerce/backend/checkout-service/internal/application"
+	"github.com/titan-commerce/backend/checkout-service/internal/infrastructure/mock"
+	"github.com/titan-commerce/backend/checkout-service/internal/interface/grpc"
+	pb "github.com/titan-commerce/backend/checkout-service/proto/checkout/v1"
 	"github.com/titan-commerce/backend/pkg/config"
 	"github.com/titan-commerce/backend/pkg/logger"
 	grpcLib "google.golang.org/grpc"
@@ -29,19 +32,14 @@ func main() {
 
 	log.Info("Checkout Service starting - Saga Coordinator ready")
 
-	// Initialize gRPC clients for service orchestration
-	// TODO: Connect to:
-	// - Inventory Service (Reserve stock)
-	// - Payment Service (Process payment)
-	// - Order Service (Create order)
-	// - Cart Service (Clear cart)
+	// Initialize Clients (Mock for now, replace with real gRPC clients in production)
+	invClient := &mock.MockInventoryClient{}
+	payClient := &mock.MockPaymentClient{}
+	ordClient := &mock.MockOrderClient{}
+	crtClient := &mock.MockCartClient{}
 
-	// Saga Orchestration Flow:
-	// 1. Reserve inventory (compensate: rollback reservation)
-	// 2. Process payment (compensate: refund)
-	// 3. Create order (compensate: cancel order)
-	// 4. Commit inventory reservation
-	// 5. Clear cart
+	// Initialize Application Service (Saga Orchestrator)
+	checkoutService := application.NewCheckoutService(invClient, payClient, ordClient, crtClient, log)
 
 	// Initialize gRPC server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GRPCPort))
@@ -50,8 +48,7 @@ func main() {
 	}
 
 	grpcServer := grpcLib.NewServer()
-	// TODO: Register gRPC handler
-	// checkoutv1.RegisterCheckoutServiceServer(grpcServer, handler.NewCheckoutServiceServer(sagaOrchestrator, log))
+	pb.RegisterCheckoutServiceServer(grpcServer, grpc.NewCheckoutServiceServer(checkoutService, log))
 
 	// Start server
 	go func() {
@@ -71,3 +68,4 @@ func main() {
 	grpcServer.GracefulStop()
 	log.Info("Checkout Service stopped")
 }
+
