@@ -1,0 +1,304 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cell-001
+  labels:
+    cell-id: "001"
+    user-range: "0-9999"
+---
+# Order Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  namespace: cell-001
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: order-service
+      cell-id: "001"
+  template:
+    metadata:
+      labels:
+        app: order-service
+        cell-id: "001"
+    spec:
+      containers:
+      - name: order-service
+        image: titan-commerce/order-service:latest
+        env:
+        - name: SERVICE_NAME
+          value: "order-service"
+        - name: CELL_ID
+          value: "cell-001"
+        - name: DATABASE_URL
+          value: "postgresql://postgres-cell-001:5432/orders"
+        - name: KAFKA_BROKERS
+          value: "kafka-broker-1:9092,kafka-broker-2:9092,kafka-broker-3:9092"
+        - name: REDIS_ADDR
+          value: "redis-cell-001:6379"
+        - name: GRPC_PORT
+          value: "9000"
+        - name: HTTP_PORT
+          value: "8080"
+        ports:
+        - containerPort: 9000
+          name: grpc
+        - containerPort: 8080
+          name: http
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  namespace: cell-001
+spec:
+  selector:
+    app: order-service
+    cell-id: "001"
+  ports:
+  - name: grpc
+    port: 9000
+    targetPort: 9000
+  - name: http
+    port: 8080
+    targetPort: 8080
+  type: ClusterIP
+---
+# Payment Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: cell-001
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: payment-service
+      cell-id: "001"
+  template:
+    metadata:
+      labels:
+        app: payment-service
+        cell-id: "001"
+    spec:
+      containers:
+      - name: payment-service
+        image: titan-commerce/payment-service:latest
+        env:
+        - name: SERVICE_NAME
+          value: "payment-service"
+        - name: CELL_ID
+          value: "cell-001"
+        - name: DATABASE_URL
+          value: "postgresql://postgres-cell-001:5432/payments"
+        - name: GRPC_PORT
+          value: "9000"
+        ports:
+        - containerPort: 9000
+          name: grpc
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+  namespace: cell-001
+spec:
+  selector:
+    app: payment-service
+    cell-id: "001"
+  ports:
+  - name: grpc
+    port: 9000
+    targetPort: 9000
+  type: ClusterIP
+---
+# Cart Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cart-service
+  namespace: cell-001
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: cart-service
+      cell-id: "001"
+  template:
+    metadata:
+      labels:
+        app: cart-service
+        cell-id: "001"
+    spec:
+      containers:
+      - name: cart-service
+        image: titan-commerce/cart-service:latest
+        env:
+        - name: SERVICE_NAME
+          value: "cart-service"
+        - name: CELL_ID
+          value: "cell-001"
+        - name: REDIS_ADDR
+          value: "redis-cell-001:6379"
+        - name: GRPC_PORT
+          value: "9000"
+        ports:
+        - containerPort: 9000
+          name: grpc
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart-service
+  namespace: cell-001
+spec:
+  selector:
+    app: cart-service
+    cell-id: "001"
+  ports:
+  - name: grpc
+    port: 9000
+    targetPort: 9000
+  type: ClusterIP
+---
+# PostgreSQL for Cell 001
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-cell-001
+  namespace: cell-001
+spec:
+  serviceName: postgres-cell-001
+  replicas: 3
+  selector:
+    matchLabels:
+      app: postgres
+      cell-id: "001"
+  template:
+    metadata:
+      labels:
+        app: postgres
+        cell-id: "001"
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 100Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-cell-001
+  namespace: cell-001
+spec:
+  selector:
+    app: postgres
+    cell-id: "001"
+  ports:
+  - port: 5432
+    targetPort: 5432
+  type: ClusterIP
+---
+# Redis for Cell 001
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-cell-001
+  namespace: cell-001
+spec:
+  serviceName: redis-cell-001
+  replicas: 6  # 3 shards × 2 replicas
+  selector:
+    matchLabels:
+      app: redis
+      cell-id: "001"
+  template:
+    metadata:
+      labels:
+        app: redis
+        cell-id: "001"
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+        volumeMounts:
+        - name: redis-storage
+          mountPath: /data
+  volumeClaimTemplates:
+  - metadata:
+      name: redis-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-cell-001
+  namespace: cell-001
+spec:
+  selector:
+    app: redis
+    cell-id: "001"
+  ports:
+  - port: 6379
+    targetPort: 6379
+  type: ClusterIP
