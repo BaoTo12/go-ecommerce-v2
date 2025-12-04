@@ -1,0 +1,79 @@
+# Titan Commerce Platform Artifacts
+.gemini/
+
+# Backend
+backend/services/**/bin/
+backend/services/**/tmp/
+backend/**/vendor/
+**/*.so
+**/*.dylib
+**/*.dll
+**/*.exe
+**/*.test
+**/*.out
+
+# Go
+*.prof
+go.work
+
+# Proto generated files
+**/*.pb.go
+**/*_grpc.pb.go
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/dist/
+frontend/.turbo/
+frontend/**/.env.local
+frontend/**/.env.production.local
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Terraform
+infrastructure/terraform/.terraform/
+infrastructure/terraform/*.tfstate
+infrastructure/terraform/*.tfstate.*
+infrastructure/terraform/.terraform.lock.hcl
+
+# Docker
+*.log
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+logs/
+*.log
+
+# Certificates
+*.pem
+*.key
+*.crt
+
+# Test coverage
+coverage/
+*.coverprofile
+
+# Build artifacts
+build/
+dist/
