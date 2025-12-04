@@ -8,6 +8,9 @@ import (
 	"syscall"
 
 	"github.com/titan-commerce/backend/wallet-service/internal/application"
+	"github.com/titan-commerce/backend/wallet-service/internal/infrastructure/postgres"
+	"github.com/titan-commerce/backend/wallet-service/internal/interface/grpc"
+	pb "github.com/titan-commerce/backend/wallet-service/proto/wallet/v1"
 	"github.com/titan-commerce/backend/pkg/config"
 	"github.com/titan-commerce/backend/pkg/logger"
 	grpcLib "google.golang.org/grpc"
@@ -29,12 +32,19 @@ func main() {
 
 	log.Info("Wallet Service starting...")
 
-	// TODO: Initialize PostgreSQL repository
-	// walletRepo := postgres.NewWalletRepository(cfg.DatabaseURL, log)
-	// txnRepo := postgres.NewTransactionRepository(cfg.DatabaseURL, log)
+	// Initialize PostgreSQL repositories
+	walletRepo, err := postgres.NewWalletRepository(cfg.DatabaseURL, log)
+	if err != nil {
+		log.Fatal(err, "Failed to initialize wallet repository")
+	}
+
+	txnRepo, err := postgres.NewTransactionRepository(cfg.DatabaseURL, log)
+	if err != nil {
+		log.Fatal(err, "Failed to initialize transaction repository")
+	}
 
 	// Initialize application service
-	// walletService := application.NewWalletService(walletRepo, txnRepo, log)
+	walletService := application.NewWalletService(walletRepo, txnRepo, log)
 
 	// Initialize gRPC server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GRPCPort))
@@ -43,12 +53,12 @@ func main() {
 	}
 
 	grpcServer := grpcLib.NewServer()
-	// TODO: Register gRPC handler
-	// walletv1.RegisterWalletServiceServer(grpcServer, handler.NewWalletServiceServer(walletService, log))
+	pb.RegisterWalletServiceServer(grpcServer, grpc.NewWalletServiceServer(walletService, log))
 
 	// Start server
 	go func() {
 		log.Infof("gRPC server listening on :%d", cfg.GRPCPort)
+		log.Info("Escrow system operational - Available + Held balances")
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatal(err, "Failed to serve")
 		}
@@ -65,3 +75,4 @@ func main() {
 	grpcServer.GracefulStop()
 	log.Info("Wallet Service stopped")
 }
+
