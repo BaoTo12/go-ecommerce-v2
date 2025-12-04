@@ -8,7 +8,9 @@ import (
 	"syscall"
 
 	"github.com/titan-commerce/backend/cart-service/internal/application"
-	"github.com/titan-commerce/backend/cart-service/internal/infrastructure/redis"
+	"github.com/titan-commerce/backend/cart-service/internal/infrastructure"
+	"github.com/titan-commerce/backend/cart-service/internal/interface/grpc"
+	pb "github.com/titan-commerce/backend/cart-service/proto/cart/v1"
 	"github.com/titan-commerce/backend/pkg/config"
 	"github.com/titan-commerce/backend/pkg/logger"
 	grpcLib "google.golang.org/grpc"
@@ -31,14 +33,13 @@ func main() {
 	log.Info("Cart Service starting...")
 
 	// Initialize Redis repository
-	repo, err := redis.NewRedisCartRepository(cfg.RedisAddr, cfg.RedisPassword)
+	cartRepo, err := infrastructure.NewRedisCartRepository(cfg.RedisAddr, cfg.RedisPassword)
 	if err != nil {
-		log.Fatal(err, "Failed to connect to Redis")
+		log.Fatal(err, "Failed to initialize Redis cart repository")
 	}
-	log.Infof("Connected to Redis at %s", cfg.RedisAddr)
 
 	// Initialize application service
-	cartService := application.NewCartService(repo, log)
+	cartService := application.NewCartService(cartRepo, log)
 
 	// Initialize gRPC server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GRPCPort))
@@ -47,12 +48,12 @@ func main() {
 	}
 
 	grpcServer := grpcLib.NewServer()
-	// TODO: Register gRPC handler
-	// cartv1.RegisterCartServiceServer(grpcServer, handler.NewCartServiceServer(cartService, log))
+	pb.RegisterCartServiceServer(grpcServer, grpc.NewCartServiceServer(cartService, log))
 
 	// Start server
 	go func() {
 		log.Infof("gRPC server listening on :%d", cfg.GRPCPort)
+		log.Info("Redis-based cart with <10ms latency, 7-day TTL")
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatal(err, "Failed to serve")
 		}

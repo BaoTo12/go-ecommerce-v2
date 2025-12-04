@@ -8,6 +8,10 @@ import (
 	"syscall"
 
 	"github.com/titan-commerce/backend/refund-service/internal/application"
+	"github.com/titan-commerce/backend/refund-service/internal/infrastructure/postgres"
+	"github.com/titan-commerce/backend/refund-service/internal/interface/grpc"
+	"github.com/titan-commerce/backend/payment-service/internal/infrastructure/gateway/mock"
+	pb "github.com/titan-commerce/backend/refund-service/proto/refund/v1"
 	"github.com/titan-commerce/backend/pkg/config"
 	"github.com/titan-commerce/backend/pkg/logger"
 	grpcLib "google.golang.org/grpc"
@@ -29,12 +33,17 @@ func main() {
 
 	log.Info("Refund Service starting...")
 
-	// TODO: Initialize PostgreSQL repository
-	// refundRepo := postgres.NewRefundRepository(cfg.DatabaseURL, log)
-	// gateway := payment.NewGatewayAdapter(cfg, log)
+	// Initialize PostgreSQL repository
+	refundRepo, err := postgres.NewRefundRepository(cfg.DatabaseURL, log)
+	if err != nil {
+		log.Fatal(err, "Failed to initialize refund repository")
+	}
+
+	// Initialize mock payment gateway
+	gateway := mock.NewMockPaymentGateway(log)
 
 	// Initialize application service
-	// refundService := application.NewRefundService(refundRepo, gateway, log)
+	refundService := application.NewRefundService(refundRepo, gateway, log)
 
 	// Initialize gRPC server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GRPCPort))
@@ -43,8 +52,7 @@ func main() {
 	}
 
 	grpcServer := grpcLib.NewServer()
-	// TODO: Register gRPC handler
-	// refundv1.RegisterRefundServiceServer(grpcServer, handler.NewRefundServiceServer(refundService, log))
+	pb.RegisterRefundServiceServer(grpcServer, grpc.NewRefundServiceServer(refundService, log))
 
 	// Start server
 	go func() {
@@ -64,3 +72,4 @@ func main() {
 	grpcServer.GracefulStop()
 	log.Info("Refund Service stopped")
 }
+
