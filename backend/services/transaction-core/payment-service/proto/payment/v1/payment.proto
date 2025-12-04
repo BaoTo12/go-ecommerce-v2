@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package payment.v1;
+
+option go_package = "github.com/titan-commerce/backend/payment-service/proto/payment/v1;paymentv1";
+
+import "google/protobuf/timestamp.proto";
+
+service PaymentService {
+  rpc ProcessPayment(ProcessPaymentRequest) returns (ProcessPaymentResponse);
+  rpc GetPayment(GetPaymentRequest) returns (GetPaymentResponse);
+  rpc RefundPayment(RefundPaymentRequest) returns (RefundPaymentResponse);
+  rpc VerifyPayment(VerifyPaymentRequest) returns (VerifyPaymentResponse);
+}
+
+enum PaymentStatus {
+  PAYMENT_STATUS_UNSPECIFIED = 0;
+  PAYMENT_STATUS_PENDING = 1;
+  PAYMENT_STATUS_PROCESSING = 2;
+  PAYMENT_STATUS_COMPLETED = 3;
+  PAYMENT_STATUS_FAILED = 4;
+  PAYMENT_STATUS_REFUNDED = 5;
+}
+
+enum PaymentGateway {
+  PAYMENT_GATEWAY_UNSPECIFIED = 0;
+  PAYMENT_GATEWAY_STRIPE = 1;
+  PAYMENT_GATEWAY_PAYPAL = 2;
+  PAYMENT_GATEWAY_ADYEN = 3;
+}
+
+message Payment {
+  string payment_id = 1;
+  string order_id = 2;
+  string user_id = 3;
+  double amount = 4;
+  string currency = 5;
+  PaymentGateway gateway = 6;
+  PaymentStatus status = 7;
+  string gateway_transaction_id = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message ProcessPaymentRequest {
+  string order_id = 1;
+  string user_id = 2;
+  double amount = 3;
+  string currency = 4;
+  PaymentGateway gateway = 5;
+  string payment_method_id = 6;
+  string idempotency_key = 7;
+}
+
+message ProcessPaymentResponse {
+  Payment payment = 1;
+  string client_secret = 2;
+}
+
+message GetPaymentRequest {
+  string payment_id = 1;
+}
+
+message GetPaymentResponse {
+  Payment payment = 1;
+}
+
+message RefundPaymentRequest {
+  string payment_id = 1;
+  double amount = 2;
+  string reason = 3;
+}
+
+message RefundPaymentResponse {
+  Payment payment = 1;
+  string refund_id = 2;
+}
+
+message VerifyPaymentRequest {
+  string payment_id = 1;
+}
+
+message VerifyPaymentResponse {
+  bool verified = 1;
+  PaymentStatus status = 2;
+}
