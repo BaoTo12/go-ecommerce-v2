@@ -5,7 +5,13 @@ go 1.23
 require (
 	github.com/google/uuid v1.5.0
 	github.com/titan-commerce/backend/pkg v0.0.0
-	google.golang.org/grpc v1.60.1
 )
 
-replace github.com/titan-commerce/backend/pkg => ../../pkg
+require (
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/rs/zerolog v1.31.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
+)
+
+replace github.com/titan-commerce/backend/pkg => ../../../pkg
