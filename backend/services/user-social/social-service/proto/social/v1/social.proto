@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package social.v1;
+
+option go_package = "github.com/titan-commerce/backend/social-service/proto/social/v1;socialv1";
+
+import "google/protobuf/timestamp.proto";
+
+service SocialService {
+  rpc FollowUser(FollowUserRequest) returns (FollowUserResponse);
+  rpc UnfollowUser(UnfollowUserRequest) returns (UnfollowUserResponse);
+  rpc GetFollowers(GetFollowersRequest) returns (GetFollowersResponse);
+  rpc GetFollowing(GetFollowingRequest) returns (GetFollowingResponse);
+  rpc GetSocialStats(GetSocialStatsRequest) returns (GetSocialStatsResponse);
+}
+
+message FollowUserRequest {
+  string follower_id = 1;
+  string followee_id = 2;
+}
+
+message FollowUserResponse {
+  bool success = 1;
+}
+
+message UnfollowUserRequest {
+  string follower_id = 1;
+  string followee_id = 2;
+}
+
+message UnfollowUserResponse {
+  bool success = 1;
+}
+
+message GetFollowersRequest {
+  string user_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message GetFollowersResponse {
+  repeated SocialUser followers = 1;
+  int32 total = 2;
+}
+
+message GetFollowingRequest {
+  string user_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message GetFollowingResponse {
+  repeated SocialUser following = 1;
+  int32 total = 2;
+}
+
+message GetSocialStatsRequest {
+  string user_id = 1;
+}
+
+message GetSocialStatsResponse {
+  int32 followers_count = 1;
+  int32 following_count = 2;
+}
+
+message SocialUser {
+  string user_id = 1;
+  google.protobuf.Timestamp followed_at = 2;
+}
