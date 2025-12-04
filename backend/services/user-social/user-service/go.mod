@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/user-service
+module github.com/titan-commerce/backend/user-service
 
 go 1.23
 

@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/refund-service
+module github.com/titan-commerce/backend/refund-service
 
 go 1.23
 

@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/notification-service
+module github.com/titan-commerce/backend/notification-service
 
 go 1.23
 

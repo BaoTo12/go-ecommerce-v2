@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/campaign-service
+module github.com/titan-commerce/backend/campaign-service
 
 go 1.23
 

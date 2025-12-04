@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/social-service
+module github.com/titan-commerce/backend/social-service
 
 go 1.23
 

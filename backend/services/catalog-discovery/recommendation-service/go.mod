@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/recommendation-service
+module github.com/titan-commerce/backend/recommendation-service
 
 go 1.23
 

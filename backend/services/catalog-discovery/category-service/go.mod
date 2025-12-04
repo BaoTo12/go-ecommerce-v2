@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/category-service
+module github.com/titan-commerce/backend/category-service
 
 go 1.23
 

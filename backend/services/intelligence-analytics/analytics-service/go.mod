@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/analytics-service
+module github.com/titan-commerce/backend/analytics-service
 
 go 1.23
 

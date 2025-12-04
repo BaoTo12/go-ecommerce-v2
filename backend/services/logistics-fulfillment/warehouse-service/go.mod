@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/warehouse-service
+module github.com/titan-commerce/backend/warehouse-service
 
 go 1.23
 

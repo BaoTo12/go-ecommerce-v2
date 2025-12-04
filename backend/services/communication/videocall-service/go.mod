@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/videocall-service
+module github.com/titan-commerce/backend/videocall-service
 
 go 1.23
 

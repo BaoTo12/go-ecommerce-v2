@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/chat-service
+module github.com/titan-commerce/backend/chat-service
 
 go 1.23
 

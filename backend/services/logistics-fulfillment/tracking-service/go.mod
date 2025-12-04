@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/tracking-service
+module github.com/titan-commerce/backend/tracking-service
 
 go 1.23
 

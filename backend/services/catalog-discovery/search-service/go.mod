@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/search-service
+module github.com/titan-commerce/backend/search-service
 
 go 1.23
 

@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/voucher-service
+module github.com/titan-commerce/backend/voucher-service
 
 go 1.23
 

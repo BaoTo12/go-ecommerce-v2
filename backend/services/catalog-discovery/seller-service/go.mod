@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/seller-service
+module github.com/titan-commerce/backend/seller-service
 
 go 1.23
 

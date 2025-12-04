@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/wallet-service
+module github.com/titan-commerce/backend/wallet-service
 
 go 1.23
 

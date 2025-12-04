@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/coupon-service
+module github.com/titan-commerce/backend/coupon-service
 
 go 1.23
 

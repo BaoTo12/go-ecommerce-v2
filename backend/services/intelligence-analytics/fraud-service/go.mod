@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/fraud-service
+module github.com/titan-commerce/backend/fraud-service
 
 go 1.23
 

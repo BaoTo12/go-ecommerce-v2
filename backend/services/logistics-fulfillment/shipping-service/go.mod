@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/shipping-service
+module github.com/titan-commerce/backend/shipping-service
 
 go 1.23
 

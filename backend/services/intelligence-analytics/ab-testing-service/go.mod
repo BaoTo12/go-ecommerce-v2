@@ -1,4 +1,4 @@
-﻿module github.com/titan-commerce/backend/ab-testing-service
+module github.com/titan-commerce/backend/ab-testing-service
 
 go 1.23
 
