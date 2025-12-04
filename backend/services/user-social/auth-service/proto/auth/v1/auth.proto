@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package auth.v1;
+
+option go_package = "github.com/titan-commerce/backend/auth-service/proto/auth/v1;authv1";
+
+import "google/protobuf/timestamp.proto";
+
+service AuthService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+  rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
+}
+
+message User {
+  string user_id = 1;
+  string email = 2;
+  string name = 3;
+  repeated string roles = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+  string name = 3;
+}
+
+message RegisterResponse {
+  User user = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  User user = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+}
+
+message LogoutRequest {
+  string access_token = 1;
+}
+
+message LogoutResponse {
+  bool success = 1;
+}
+
+message VerifyTokenRequest {
+  string access_token = 1;
+}
+
+message VerifyTokenResponse {
+  bool valid = 1;
+  User user = 2;
+}

@@ -1,0 +1,112 @@
+syntax = "proto3";
+
+package product.v1;
+
+option go_package = "github.com/titan-commerce/backend/product-service/proto/product/v1;productv1";
+
+import "google/protobuf/timestamp.proto";
+
+service ProductService {
+  rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+  rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse);
+  rpc DeleteProduct(DeleteProductRequest) returns (DeleteProductResponse);
+  rpc ListProducts(ListProductsRequest) returns (ListProductsResponse);
+  rpc SearchProducts(SearchProductsRequest) returns (SearchProductsResponse);
+}
+
+enum ProductStatus {
+  PRODUCT_STATUS_UNSPECIFIED = 0;
+  PRODUCT_STATUS_DRAFT = 1;
+  PRODUCT_STATUS_PENDING_REVIEW = 2;
+  PRODUCT_STATUS_APPROVED = 3;
+  PRODUCT_STATUS_PUBLISHED = 4;
+  PRODUCT_STATUS_SUSPENDED = 5;
+}
+
+message ProductVariant {
+  string variant_id = 1;
+  string name = 2;  // e.g., "Red - Large"
+  double price = 3;
+  int32 stock = 4;
+  string sku = 5;
+}
+
+message Product {
+  string product_id = 1;
+  string seller_id = 2;
+  string name = 3;
+  string description = 4;
+  string category_id = 5;
+  repeated ProductVariant variants = 6;
+  repeated string image_urls = 7;
+  ProductStatus status = 8;
+  double rating = 9;
+  int32 review_count = 10;
+  int32 sold_count = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+}
+
+message CreateProductRequest {
+  string seller_id = 1;
+  string name = 2;
+  string description = 3;
+  string category_id = 4;
+  repeated ProductVariant variants = 5;
+  repeated string image_urls = 6;
+}
+
+message CreateProductResponse {
+  Product product = 1;
+}
+
+message GetProductRequest {
+  string product_id = 1;
+}
+
+message GetProductResponse {
+  Product product = 1;
+}
+
+message UpdateProductRequest {
+  string product_id = 1;
+  string name = 2;
+  string description = 3;
+  repeated ProductVariant variants = 4;
+}
+
+message UpdateProductResponse {
+  Product product = 1;
+}
+
+message DeleteProductRequest {
+  string product_id = 1;
+}
+
+message DeleteProductResponse {
+  bool success = 1;
+}
+
+message ListProductsRequest {
+  string seller_id = 1;
+  int32 page_size = 2;
+  int32 page = 3;
+}
+
+message ListProductsResponse {
+  repeated Product products = 1;
+  int32 total_count = 2;
+}
+
+message SearchProductsRequest {
+  string query = 1;
+  string category_id = 2;
+  int32 page_size = 3;
+  int32 page = 4;
+}
+
+message SearchProductsResponse {
+  repeated Product products = 1;
+  int32 total_count = 2;
+}
