@@ -1,0 +1,169 @@
+syntax = "proto3";
+
+package videocall.v1;
+
+option go_package = "github.com/titan-commerce/backend/videocall-service/proto/videocall/v1;videocallpb";
+
+import "google/protobuf/timestamp.proto";
+
+service VideocallService {
+  rpc InitiateCall(InitiateCallRequest) returns (InitiateCallResponse);
+  rpc RingCall(RingCallRequest) returns (RingCallResponse);
+  rpc AnswerCall(AnswerCallRequest) returns (AnswerCallResponse);
+  rpc RejectCall(RejectCallRequest) returns (RejectCallResponse);
+  rpc EndCall(EndCallRequest) returns (EndCallResponse);
+  rpc SendSignal(SendSignalRequest) returns (SendSignalResponse);
+  rpc GetCall(GetCallRequest) returns (GetCallResponse);
+  rpc GetUserCalls(GetUserCallsRequest) returns (GetUserCallsResponse);
+  rpc UpdateCallQuality(UpdateCallQualityRequest) returns (UpdateCallQualityResponse);
+  rpc StreamSignals(StreamSignalsRequest) returns (stream SignalEvent);
+}
+
+enum CallStatus {
+  CALL_STATUS_UNSPECIFIED = 0;
+  CALL_STATUS_INITIATED = 1;
+  CALL_STATUS_RINGING = 2;
+  CALL_STATUS_ACTIVE = 3;
+  CALL_STATUS_ENDED = 4;
+  CALL_STATUS_MISSED = 5;
+  CALL_STATUS_REJECTED = 6;
+  CALL_STATUS_FAILED = 7;
+}
+
+enum CallType {
+  CALL_TYPE_UNSPECIFIED = 0;
+  CALL_TYPE_SUPPORT = 1;
+  CALL_TYPE_SALES = 2;
+  CALL_TYPE_CONSULT = 3;
+}
+
+message IceServer {
+  repeated string urls = 1;
+  string username = 2;
+  string credential = 3;
+}
+
+message CallQuality {
+  int32 average_latency = 1;
+  double packet_loss = 2;
+  int32 average_bitrate = 3;
+  string video_resolution = 4;
+  string audio_quality = 5;
+  int32 connection_drops = 6;
+}
+
+message VideoCall {
+  string call_id = 1;
+  CallType type = 2;
+  string caller_id = 3;
+  string caller_name = 4;
+  string callee_id = 5;
+  string callee_name = 6;
+  CallStatus status = 7;
+  string room_id = 8;
+  repeated IceServer ice_servers = 9;
+  google.protobuf.Timestamp started_at = 10;
+  google.protobuf.Timestamp ended_at = 11;
+  int32 duration = 12;
+  CallQuality quality = 13;
+  string recording_url = 14;
+  bool is_recorded = 15;
+  google.protobuf.Timestamp created_at = 16;
+  google.protobuf.Timestamp updated_at = 17;
+}
+
+message InitiateCallRequest {
+  CallType type = 1;
+  string caller_id = 2;
+  string caller_name = 3;
+  string callee_id = 4;
+  string callee_name = 5;
+}
+
+message InitiateCallResponse {
+  VideoCall call = 1;
+}
+
+message RingCallRequest {
+  string call_id = 1;
+}
+
+message RingCallResponse {
+  bool success = 1;
+}
+
+message AnswerCallRequest {
+  string call_id = 1;
+}
+
+message AnswerCallResponse {
+  bool success = 1;
+}
+
+message RejectCallRequest {
+  string call_id = 1;
+}
+
+message RejectCallResponse {
+  bool success = 1;
+}
+
+message EndCallRequest {
+  string call_id = 1;
+}
+
+message EndCallResponse {
+  bool success = 1;
+}
+
+message SendSignalRequest {
+  string call_id = 1;
+  string user_id = 2;
+  string event_type = 3;
+  string payload = 4;
+}
+
+message SendSignalResponse {
+  bool success = 1;
+}
+
+message GetCallRequest {
+  string call_id = 1;
+}
+
+message GetCallResponse {
+  VideoCall call = 1;
+}
+
+message GetUserCallsRequest {
+  string user_id = 1;
+  int32 limit = 2;
+}
+
+message GetUserCallsResponse {
+  repeated VideoCall calls = 1;
+}
+
+message UpdateCallQualityRequest {
+  string call_id = 1;
+  CallQuality quality = 2;
+}
+
+message UpdateCallQualityResponse {
+  bool success = 1;
+}
+
+message StreamSignalsRequest {
+  string call_id = 1;
+  string user_id = 2;
+}
+
+message SignalEvent {
+  string event_id = 1;
+  string call_id = 2;
+  string user_id = 3;
+  string event_type = 4;
+  string payload = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
