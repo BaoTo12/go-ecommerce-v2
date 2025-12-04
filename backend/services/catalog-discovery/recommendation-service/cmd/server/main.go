@@ -2,10 +2,18 @@
 
 import (
 	"fmt"
+	"net"
 	"os"
+	"os/signal"
+	"syscall"
 
+	"github.com/titan-commerce/backend/recommendation-service/internal/application"
+	"github.com/titan-commerce/backend/recommendation-service/internal/infrastructure/mock"
+	"github.com/titan-commerce/backend/recommendation-service/internal/interface/grpc"
+	pb "github.com/titan-commerce/backend/recommendation-service/proto/recommendation/v1"
 	"github.com/titan-commerce/backend/pkg/config"
 	"github.com/titan-commerce/backend/pkg/logger"
+	grpcLib "google.golang.org/grpc"
 )
 
 func main() {
@@ -22,7 +30,38 @@ func main() {
 		Pretty:      true,
 	})
 
-	log.Info("recommendation-service starting...")
-	// TODO: Implement service
-	select {}
+	log.Info("Recommendation Service starting...")
+
+	// Initialize Mock AI Engine
+	engine := mock.NewMockEngine(log)
+
+	// Initialize application service
+	recService := application.NewRecommendationService(engine, log)
+
+	// Initialize gRPC server
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GRPCPort))
+	if err != nil {
+		log.Fatal(err, "Failed to listen")
+	}
+
+	grpcServer := grpcLib.NewServer()
+	pb.RegisterRecommendationServiceServer(grpcServer, grpc.NewRecommendationServiceServer(recService, log))
+
+	// Start server
+	go func() {
+		log.Infof("gRPC server listening on :%d", cfg.GRPCPort)
+		log.Info("AI Recommendation Engine ready (Mock Mode)")
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatal(err, "Failed to serve")
+		}
+	}()
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Info("Shutting down Recommendation Service")
+	grpcServer.GracefulStop()
+	log.Info("Recommendation Service stopped")
 }

@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package recommendation.v1;
+
+option go_package = "github.com/titan-commerce/backend/recommendation-service/proto/recommendation/v1;recommendationv1";
+
+service RecommendationService {
+  rpc GetRecommendations(GetRecommendationsRequest) returns (GetRecommendationsResponse);
+  rpc TrackInteraction(TrackInteractionRequest) returns (TrackInteractionResponse);
+}
+
+message GetRecommendationsRequest {
+  string user_id = 1;
+  int32 limit = 2;
+  string context = 3; // e.g., "homepage", "product_detail", "cart"
+}
+
+message GetRecommendationsResponse {
+  repeated RecommendedItem items = 1;
+}
+
+message TrackInteractionRequest {
+  string user_id = 1;
+  string product_id = 2;
+  string interaction_type = 3; // "view", "click", "purchase", "like"
+}
+
+message TrackInteractionResponse {
+  bool success = 1;
+}
+
+message RecommendedItem {
+  string product_id = 1;
+  float score = 2;
+  string reason = 3; // "Because you viewed X", "Trending now"
+}
