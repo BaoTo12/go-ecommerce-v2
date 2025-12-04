@@ -35,38 +35,39 @@ func NewProductRepository(databaseURL string, logger *logger.Logger) (*ProductRe
 }
 
 func (r *ProductRepository) Save(ctx context.Context, product *domain.Product) error {
-	imagesJSON, err := json.Marshal(product.Images)
+	variantsJSON, err := json.Marshal(product.Variants)
 	if err != nil {
-		return errors.Wrap(errors.ErrInternal, "failed to marshal images", err)
+		return errors.Wrap(errors.ErrInternal, "failed to marshal variants", err)
 	}
 
-	attributesJSON, err := json.Marshal(product.Attributes)
+	imageURLsJSON, err := json.Marshal(product.ImageURLs)
 	if err != nil {
-		return errors.Wrap(errors.ErrInternal, "failed to marshal attributes", err)
+		return errors.Wrap(errors.ErrInternal, "failed to marshal image URLs", err)
 	}
 
 	query := `
 		INSERT INTO products (
-			id, name, description, price, currency, 
-			category_id, images, attributes, stock, 
+			id, seller_id, name, description, category_id, 
+			variants, image_urls, status, rating, review_count, sold_count,
 			created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		ON CONFLICT (id) DO UPDATE SET
 			name = EXCLUDED.name,
 			description = EXCLUDED.description,
-			price = EXCLUDED.price,
-			currency = EXCLUDED.currency,
 			category_id = EXCLUDED.category_id,
-			images = EXCLUDED.images,
-			attributes = EXCLUDED.attributes,
-			stock = EXCLUDED.stock,
+			variants = EXCLUDED.variants,
+			image_urls = EXCLUDED.image_urls,
+			status = EXCLUDED.status,
+			rating = EXCLUDED.rating,
+			review_count = EXCLUDED.review_count,
+			sold_count = EXCLUDED.sold_count,
 			updated_at = EXCLUDED.updated_at
 	`
 
 	_, err = r.db.ExecContext(ctx, query,
-		product.ID, product.Name, product.Description, product.Price, product.Currency,
-		product.CategoryID, imagesJSON, attributesJSON, product.Stock,
-		product.CreatedAt, product.UpdatedAt,
+		product.ID, product.SellerID, product.Name, product.Description, product.CategoryID,
+		variantsJSON, imageURLsJSON, product.Status, product.Rating, product.ReviewCount,
+		product.SoldCount, product.CreatedAt, product.UpdatedAt,
 	)
 
 	if err != nil {
@@ -78,19 +79,19 @@ func (r *ProductRepository) Save(ctx context.Context, product *domain.Product) e
 
 func (r *ProductRepository) FindByID(ctx context.Context, id string) (*domain.Product, error) {
 	query := `
-		SELECT id, name, description, price, currency, 
-			   category_id, images, attributes, stock, 
+		SELECT id, seller_id, name, description, category_id,
+			   variants, image_urls, status, rating, review_count, sold_count,
 			   created_at, updated_at
 		FROM products WHERE id = $1
 	`
 
 	var p domain.Product
-	var imagesJSON, attributesJSON []byte
+	var variantsJSON, imageURLsJSON []byte
 
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
-		&p.ID, &p.Name, &p.Description, &p.Price, &p.Currency,
-		&p.CategoryID, &imagesJSON, &attributesJSON, &p.Stock,
-		&p.CreatedAt, &p.UpdatedAt,
+		&p.ID, &p.SellerID, &p.Name, &p.Description, &p.CategoryID,
+		&variantsJSON, &imageURLsJSON, &p.Status, &p.Rating,
+		&p.ReviewCount, &p.SoldCount, &p.CreatedAt, &p.UpdatedAt,
 	)
 
 	if err == sql.ErrNoRows {
@@ -100,11 +101,11 @@ func (r *ProductRepository) FindByID(ctx context.Context, id string) (*domain.Pr
 		return nil, errors.Wrap(errors.ErrInternal, "failed to find product", err)
 	}
 
-	if err := json.Unmarshal(imagesJSON, &p.Images); err != nil {
-		return nil, errors.Wrap(errors.ErrInternal, "failed to unmarshal images", err)
+	if err := json.Unmarshal(variantsJSON, &p.Variants); err != nil {
+		return nil, errors.Wrap(errors.ErrInternal, "failed to unmarshal variants", err)
 	}
-	if err := json.Unmarshal(attributesJSON, &p.Attributes); err != nil {
-		return nil, errors.Wrap(errors.ErrInternal, "failed to unmarshal attributes", err)
+	if err := json.Unmarshal(imageURLsJSON, &p.ImageURLs); err != nil {
+		return nil, errors.Wrap(errors.ErrInternal, "failed to unmarshal image URLs", err)
 	}
 
 	return &p, nil
@@ -114,8 +115,8 @@ func (r *ProductRepository) List(ctx context.Context, page, pageSize int) ([]*do
 	offset := (page - 1) * pageSize
 
 	query := `
-		SELECT id, name, description, price, currency, 
-			   category_id, images, attributes, stock, 
+		SELECT id, seller_id, name, description, category_id,
+			   variants, image_urls, status, rating, review_count, sold_count,
 			   created_at, updated_at
 		FROM products
 		ORDER BY created_at DESC
@@ -131,17 +132,17 @@ func (r *ProductRepository) List(ctx context.Context, page, pageSize int) ([]*do
 	var products []*domain.Product
 	for rows.Next() {
 		var p domain.Product
-		var imagesJSON, attributesJSON []byte
+		var variantsJSON, imageURLsJSON []byte
 		err := rows.Scan(
-			&p.ID, &p.Name, &p.Description, &p.Price, &p.Currency,
-			&p.CategoryID, &imagesJSON, &attributesJSON, &p.Stock,
-			&p.CreatedAt, &p.UpdatedAt,
+			&p.ID, &p.SellerID, &p.Name, &p.Description, &p.CategoryID,
+			&variantsJSON, &imageURLsJSON, &p.Status, &p.Rating,
+			&p.ReviewCount, &p.SoldCount, &p.CreatedAt, &p.UpdatedAt,
 		)
 		if err != nil {
 			return nil, 0, errors.Wrap(errors.ErrInternal, "failed to scan product", err)
 		}
-		json.Unmarshal(imagesJSON, &p.Images)
-		json.Unmarshal(attributesJSON, &p.Attributes)
+		json.Unmarshal(variantsJSON, &p.Variants)
+		json.Unmarshal(imageURLsJSON, &p.ImageURLs)
 		products = append(products, &p)
 	}
 
@@ -149,4 +150,19 @@ func (r *ProductRepository) List(ctx context.Context, page, pageSize int) ([]*do
 	r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM products").Scan(&total)
 
 	return products, total, nil
+}
+
+func (r *ProductRepository) Delete(ctx context.Context, id string) error {
+	query := `DELETE FROM products WHERE id = $1`
+	result, err := r.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return errors.Wrap(errors.ErrInternal, "failed to delete product", err)
+	}
+
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return errors.New(errors.ErrNotFound, "product not found")
+	}
+
+	return nil
 }
