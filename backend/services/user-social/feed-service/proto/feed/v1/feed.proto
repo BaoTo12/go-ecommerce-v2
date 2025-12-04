@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package feed.v1;
+
+option go_package = "github.com/titan-commerce/backend/feed-service/proto/feed/v1;feedv1";
+
+import "google/protobuf/timestamp.proto";
+
+service FeedService {
+  rpc GetFeed(GetFeedRequest) returns (GetFeedResponse);
+  rpc PublishPost(PublishPostRequest) returns (PublishPostResponse);
+  rpc DeletePost(DeletePostRequest) returns (DeletePostResponse);
+}
+
+message GetFeedRequest {
+  string user_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message GetFeedResponse {
+  repeated FeedItem items = 1;
+  string next_cursor = 2;
+}
+
+message PublishPostRequest {
+  string user_id = 1;
+  string content = 2;
+  string media_url = 3; // Video/Image URL
+  repeated string tags = 4;
+}
+
+message PublishPostResponse {
+  string post_id = 1;
+  FeedItem item = 2;
+}
+
+message DeletePostRequest {
+  string post_id = 1;
+  string user_id = 2;
+}
+
+message DeletePostResponse {
+  bool success = 1;
+}
+
+message FeedItem {
+  string post_id = 1;
+  string user_id = 2;
+  string content = 3;
+  string media_url = 4;
+  int32 likes_count = 5;
+  int32 comments_count = 6;
+  repeated string tags = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
