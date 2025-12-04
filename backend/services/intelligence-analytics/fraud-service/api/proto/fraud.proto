@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package fraud;
+
+option go_package = "github.com/titan-commerce/backend/fraud-service/api/proto";
+
+import "google/protobuf/timestamp.proto";
+
+service FraudService {
+  // Check transaction for fraud
+  rpc CheckTransaction(CheckTransactionRequest) returns (FraudCheckResult);
+  
+  // Get fraud check by ID
+  rpc GetFraudCheck(GetFraudCheckRequest) returns (FraudCheckResult);
+  
+  // Get user fraud history
+  rpc GetUserFraudHistory(GetUserFraudHistoryRequest) returns (GetUserFraudHistoryResponse);
+  
+  // Override fraud decision (admin)
+  rpc OverrideDecision(OverrideDecisionRequest) returns (OverrideDecisionResponse);
+  
+  // Get pending alerts
+  rpc GetPendingAlerts(GetPendingAlertsRequest) returns (GetPendingAlertsResponse);
+}
+
+message CheckTransactionRequest {
+  string transaction_id = 1;
+  string user_id = 2;
+  double amount = 3;
+  string currency = 4;
+  string ip_address = 5;
+  string device_id = 6;
+  string user_agent = 7;
+  map<string, string> metadata = 8;
+}
+
+message FraudCheckResult {
+  string check_id = 1;
+  string transaction_id = 2;
+  double score = 3;
+  string risk_level = 4;
+  string decision = 5;
+  repeated string reasons = 6;
+  int64 processing_time_ms = 7;
+  FraudFeatures features = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message FraudFeatures {
+  int32 account_age_days = 1;
+  int32 total_orders = 2;
+  double avg_order_value = 3;
+  int32 orders_last_24h = 4;
+  int32 orders_last_7d = 5;
+  int32 failed_payments_last_7d = 6;
+  int32 unique_devices = 7;
+  int32 unique_ips = 8;
+  bool new_device = 9;
+  bool new_ip = 10;
+  double velocity_score = 11;
+  double amount_deviation = 12;
+}
+
+message GetFraudCheckRequest {
+  string check_id = 1;
+}
+
+message GetUserFraudHistoryRequest {
+  string user_id = 1;
+  int32 limit = 2;
+}
+
+message GetUserFraudHistoryResponse {
+  repeated FraudCheckResult checks = 1;
+}
+
+message OverrideDecisionRequest {
+  string check_id = 1;
+  string new_decision = 2;
+  string reason = 3;
+  string admin_id = 4;
+}
+
+message OverrideDecisionResponse {
+  bool success = 1;
+}
+
+message GetPendingAlertsRequest {
+  int32 limit = 1;
+}
+
+message GetPendingAlertsResponse {
+  repeated FraudAlert alerts = 1;
+}
+
+message FraudAlert {
+  string id = 1;
+  string fraud_check_id = 2;
+  string alert_type = 3;
+  string severity = 4;
+  string message = 5;
+  bool acknowledged = 6;
+  google.protobuf.Timestamp created_at = 7;
+}

@@ -1,0 +1,135 @@
+syntax = "proto3";
+
+package gamification;
+
+option go_package = "github.com/titan-commerce/backend/gamification-service/api/proto";
+
+import "google/protobuf/timestamp.proto";
+
+service GamificationService {
+  // Coin operations
+  rpc GetBalance(GetBalanceRequest) returns (CoinWallet);
+  rpc EarnCoins(EarnCoinsRequest) returns (CoinTransaction);
+  rpc SpendCoins(SpendCoinsRequest) returns (SpendCoinsResponse);
+  
+  // Daily check-in
+  rpc DailyCheckIn(DailyCheckInRequest) returns (DailyCheckInResponse);
+  
+  // Missions
+  rpc GetMissions(GetMissionsRequest) returns (GetMissionsResponse);
+  rpc UpdateMissionProgress(UpdateMissionProgressRequest) returns (UserMission);
+  rpc ClaimMissionReward(ClaimMissionRewardRequest) returns (ClaimRewardResponse);
+  
+  // Lucky draw
+  rpc SpinLuckyDraw(SpinLuckyDrawRequest) returns (LuckyDrawResult);
+}
+
+message GetBalanceRequest {
+  string user_id = 1;
+}
+
+message CoinWallet {
+  string user_id = 1;
+  int64 balance = 2;
+  int64 lifetime_earned = 3;
+  int64 lifetime_spent = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+message EarnCoinsRequest {
+  string user_id = 1;
+  int64 amount = 2;
+  string source = 3;
+  string reference_id = 4;
+  string description = 5;
+}
+
+message SpendCoinsRequest {
+  string user_id = 1;
+  int64 amount = 2;
+  string purpose = 3;
+  string reference_id = 4;
+}
+
+message SpendCoinsResponse {
+  bool success = 1;
+  int64 new_balance = 2;
+  string transaction_id = 3;
+}
+
+message CoinTransaction {
+  string id = 1;
+  string user_id = 2;
+  int64 amount = 3;
+  string type = 4;
+  string source = 5;
+  string description = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
+
+message DailyCheckInRequest {
+  string user_id = 1;
+}
+
+message DailyCheckInResponse {
+  int64 reward = 1;
+  int32 streak = 2;
+  bool streak_bonus = 3;
+  google.protobuf.Timestamp next_check_in = 4;
+}
+
+message GetMissionsRequest {
+  string user_id = 1;
+}
+
+message GetMissionsResponse {
+  repeated Mission missions = 1;
+  repeated UserMission user_missions = 2;
+}
+
+message Mission {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string type = 4;
+  int32 target = 5;
+  int64 reward = 6;
+  google.protobuf.Timestamp expires_at = 7;
+}
+
+message UserMission {
+  string mission_id = 1;
+  string user_id = 2;
+  int32 progress = 3;
+  bool completed = 4;
+  bool claimed = 5;
+}
+
+message UpdateMissionProgressRequest {
+  string user_id = 1;
+  string mission_id = 2;
+  int32 increment = 3;
+}
+
+message ClaimMissionRewardRequest {
+  string user_id = 1;
+  string mission_id = 2;
+}
+
+message ClaimRewardResponse {
+  bool success = 1;
+  int64 coins_awarded = 2;
+}
+
+message SpinLuckyDrawRequest {
+  string user_id = 1;
+  int64 spin_cost = 2;
+}
+
+message LuckyDrawResult {
+  string prize_id = 1;
+  string prize_name = 2;
+  string prize_type = 3;
+  int64 value = 4;
+  bool is_jackpot = 5;
+}

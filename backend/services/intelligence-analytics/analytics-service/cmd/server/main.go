@@ -32,8 +32,8 @@ func main() {
 
 	log.Info("Analytics Service starting...")
 
-	// Initialize repository
-	repo := clickhouse.NewAnalyticsRepository()
+	// Initialize repository (in-memory mode)
+	repo := clickhouse.NewAnalyticsRepository(log)
 
 	// Initialize application service
 	analyticsService := application.NewAnalyticsService(repo, log)

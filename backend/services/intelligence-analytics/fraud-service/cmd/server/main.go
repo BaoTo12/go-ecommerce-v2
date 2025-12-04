@@ -3,15 +3,19 @@
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/titan-commerce/backend/fraud-service/internal/application"
+	grpcServer "github.com/titan-commerce/backend/fraud-service/internal/interface/grpc"
 	"github.com/titan-commerce/backend/fraud-service/internal/infrastructure/postgres"
 	"github.com/titan-commerce/backend/pkg/config"
 	"github.com/titan-commerce/backend/pkg/logger"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
@@ -30,11 +34,33 @@ func main() {
 
 	log.Info("Fraud Detection Service starting...")
 
-	// Initialize repository
-	repo := postgres.NewFraudRepository()
+	// Initialize PostgreSQL repository
+	repo, err := postgres.NewFraudRepository(cfg.DatabaseURL, log)
+	if err != nil {
+		log.Fatal(err, "Failed to initialize repository")
+	}
+	defer repo.Close()
 
 	// Initialize application service with ML scoring
 	fraudService := application.NewFraudService(repo, log)
+
+	// Start gRPC server
+	go func() {
+		grpcAddr := fmt.Sprintf(":%d", cfg.GRPCPort)
+		lis, err := net.Listen("tcp", grpcAddr)
+		if err != nil {
+			log.Fatal(err, "Failed to listen for gRPC")
+		}
+
+		server := grpc.NewServer()
+		grpcServer.NewFraudServer(fraudService).Register(server)
+		reflection.Register(server)
+
+		log.Infof("gRPC server listening on %s", grpcAddr)
+		if err := server.Serve(lis); err != nil {
+			log.Fatal(err, "Failed to serve gRPC")
+		}
+	}()
 
 	// HTTP endpoints
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +68,11 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
-	// Check transaction for fraud
+	http.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("READY"))
+	})
+
 	http.HandleFunc("/api/v1/fraud/check", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -87,14 +117,12 @@ func main() {
 		})
 	})
 
-	// Get pending fraud alerts
 	http.HandleFunc("/api/v1/fraud/alerts", func(w http.ResponseWriter, r *http.Request) {
 		alerts, _ := fraudService.GetPendingAlerts(r.Context())
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(alerts)
 	})
 
-	// Get user fraud history
 	http.HandleFunc("/api/v1/fraud/history", func(w http.ResponseWriter, r *http.Request) {
 		userID := r.URL.Query().Get("user_id")
 		history, _ := fraudService.GetUserFraudHistory(r.Context(), userID, 20)
@@ -104,7 +132,7 @@ func main() {
 
 	go func() {
 		addr := fmt.Sprintf(":%d", cfg.HTTPPort)
-		log.Infof("Fraud Detection service listening on %s", addr)
+		log.Infof("HTTP server listening on %s", addr)
 		log.Info("ML-based fraud scoring engine ready!")
 		if err := http.ListenAndServe(addr, nil); err != nil {
 			log.Fatal(err, "Failed to serve HTTP")

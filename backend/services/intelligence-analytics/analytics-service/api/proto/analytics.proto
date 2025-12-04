@@ -1,0 +1,137 @@
+syntax = "proto3";
+
+package analytics;
+
+option go_package = "github.com/titan-commerce/backend/analytics-service/api/proto";
+
+import "google/protobuf/timestamp.proto";
+
+service AnalyticsService {
+  // Track event
+  rpc TrackEvent(TrackEventRequest) returns (TrackEventResponse);
+  
+  // Batch track events
+  rpc TrackEvents(TrackEventsRequest) returns (TrackEventsResponse);
+  
+  // Get dashboard metrics
+  rpc GetDashboard(GetDashboardRequest) returns (DashboardMetrics);
+  
+  // Get sales report
+  rpc GetSalesReport(GetSalesReportRequest) returns (SalesReport);
+  
+  // Get conversion funnel
+  rpc GetConversionFunnel(GetConversionFunnelRequest) returns (ConversionFunnel);
+  
+  // Get product analytics
+  rpc GetProductAnalytics(GetProductAnalyticsRequest) returns (ProductAnalytics);
+}
+
+message TrackEventRequest {
+  string user_id = 1;
+  string session_id = 2;
+  string event_type = 3;
+  map<string, string> properties = 4;
+  string device_type = 5;
+  string platform = 6;
+  string country = 7;
+  string city = 8;
+  google.protobuf.Timestamp timestamp = 9;
+}
+
+message TrackEventResponse {
+  string event_id = 1;
+  bool success = 2;
+}
+
+message TrackEventsRequest {
+  repeated TrackEventRequest events = 1;
+}
+
+message TrackEventsResponse {
+  int32 accepted = 1;
+  int32 rejected = 2;
+}
+
+message GetDashboardRequest {
+  string cell_id = 1;
+}
+
+message DashboardMetrics {
+  int32 active_users = 1;
+  int32 orders_in_progress = 2;
+  double current_revenue = 3;
+  int32 today_orders = 4;
+  double today_revenue = 5;
+  int32 today_page_views = 6;
+  int32 today_unique_users = 7;
+  double orders_change = 8;
+  double revenue_change = 9;
+  double users_change = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message GetSalesReportRequest {
+  string period = 1;
+  google.protobuf.Timestamp start_date = 2;
+  google.protobuf.Timestamp end_date = 3;
+}
+
+message SalesReport {
+  string period = 1;
+  google.protobuf.Timestamp start_date = 2;
+  google.protobuf.Timestamp end_date = 3;
+  int32 total_orders = 4;
+  double total_revenue = 5;
+  int32 total_items = 6;
+  double avg_order_value = 7;
+  repeated ProductSales top_products = 8;
+  repeated CategorySales category_breakdown = 9;
+}
+
+message ProductSales {
+  string product_id = 1;
+  string product_name = 2;
+  int32 quantity = 3;
+  double revenue = 4;
+}
+
+message CategorySales {
+  string category_id = 1;
+  string category_name = 2;
+  int32 orders = 3;
+  double revenue = 4;
+  double percentage = 5;
+}
+
+message GetConversionFunnelRequest {
+  string funnel_name = 1;
+  string period = 2;
+}
+
+message ConversionFunnel {
+  string name = 1;
+  repeated FunnelStep steps = 2;
+  double overall_rate = 3;
+}
+
+message FunnelStep {
+  string name = 1;
+  int32 users = 2;
+  double conversion = 3;
+}
+
+message GetProductAnalyticsRequest {
+  string product_id = 1;
+  string period = 2;
+}
+
+message ProductAnalytics {
+  string product_id = 1;
+  int32 views = 2;
+  int32 unique_views = 3;
+  double add_to_cart_rate = 4;
+  double purchase_rate = 5;
+  double avg_time_on_page = 6;
+  double revenue = 7;
+  int32 quantity = 8;
+}
