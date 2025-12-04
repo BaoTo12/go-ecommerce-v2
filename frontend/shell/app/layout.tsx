@@ -1,52 +1,64 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-
-const inter = Inter({ subsets: ['latin'] })
+import type { Metadata } from 'next';
+import './globals.css';
+import Navigation from '../components/Navigation';
 
 export const metadata: Metadata = {
   title: 'Titan Commerce - Hyperscale E-Commerce Platform',
-  description: 'Modern e-commerce platform with live streaming, gamification, and social shopping',
-}
+  description: 'Next-generation e-commerce platform with 50M DAU capacity, featuring live shopping, flash sales, gamification, and AI-powered features.',
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container flex h-16 items-center">
-            <div className="mr-4 flex">
-              <a className="mr-6 flex items-center space-x-2" href="/">
-                <span className="hidden font-bold sm:inline-block">
-                  Titan Commerce
-                </span>
-              </a>
-            </div>
-            <nav className="flex items-center space-x-6 text-sm font-medium">
-              <a href="/products">Products</a>
-              <a href="/live">Live Streaming</a>
-              <a href="/deals">Flash Sales</a>
-              <a href="/rewards">Rewards</a>
-            </nav>
-            <div className="flex flex-1 items-center justify-end space-x-4">
-              <a href="/cart">Cart</a>
-              <a href="/login">Login</a>
-            </div>
-          </div>
-        </header>
+      <body className="min-h-screen bg-gray-50">
+        <Navigation />
         <main>{children}</main>
-        <footer className="border-t">
-          <div className="container py-8">
-            <p className="text-center text-sm text-muted-foreground">
-              © 2025 Titan Commerce. Built with Next.js 15, React 19, and Tailwind CSS.
-            </p>
+        <footer className="border-t bg-white py-8 mt-16">
+          <div className="container mx-auto px-4">
+            <div className="grid gap-8 md:grid-cols-4">
+              <div>
+                <h3 className="mb-4 font-bold">🚀 Titan Commerce</h3>
+                <p className="text-sm text-muted-foreground">
+                  Hyperscale e-commerce platform serving 50M+ daily active users across Southeast Asia.
+                </p>
+              </div>
+              <div>
+                <h4 className="mb-3 font-semibold">Shopping</h4>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li><a href="/products" className="hover:text-foreground">All Products</a></li>
+                  <li><a href="/deals/flash-sale" className="hover:text-foreground">Flash Sales</a></li>
+                  <li><a href="/live" className="hover:text-foreground">Live Shopping</a></li>
+                  <li><a href="/deals/coupons" className="hover:text-foreground">Coupons</a></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="mb-3 font-semibold">Rewards</h4>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li><a href="/rewards" className="hover:text-foreground">Daily Check-in</a></li>
+                  <li><a href="/rewards" className="hover:text-foreground">Lucky Draw</a></li>
+                  <li><a href="/rewards" className="hover:text-foreground">Missions</a></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="mb-3 font-semibold">Platform</h4>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li>🏗️ Cell-Based Architecture</li>
+                  <li>⚡ 50ms P99 Latency</li>
+                  <li>🛡️ Fraud Detection</li>
+                  <li>📊 Real-time Analytics</li>
+                </ul>
+              </div>
+            </div>
+            <div className="mt-8 border-t pt-6 text-center text-sm text-muted-foreground">
+              © 2024 Titan Commerce. Built for hyperscale.
+            </div>
           </div>
         </footer>
       </body>
     </html>
-  )
+  );
 }
