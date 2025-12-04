@@ -4,32 +4,26 @@ package auth.v1;
 
 option go_package = "github.com/titan-commerce/backend/auth-service/proto/auth/v1;authv1";
 
-import "google/protobuf/timestamp.proto";
-
 service AuthService {
   rpc Register(RegisterRequest) returns (RegisterResponse);
   rpc Login(LoginRequest) returns (LoginResponse);
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
   rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
-  rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
-}
-
-message User {
-  string user_id = 1;
-  string email = 2;
-  string name = 3;
-  repeated string roles = 4;
-  google.protobuf.Timestamp created_at = 5;
+  
+  // MFA
+  rpc EnableMFA(EnableMFARequest) returns (EnableMFAResponse);
+  rpc VerifyMFA(VerifyMFARequest) returns (VerifyMFAResponse);
 }
 
 message RegisterRequest {
   string email = 1;
   string password = 2;
-  string name = 3;
+  string full_name = 3;
 }
 
 message RegisterResponse {
-  User user = 1;
+  string user_id = 1;
   string access_token = 2;
   string refresh_token = 3;
 }
@@ -37,12 +31,24 @@ message RegisterResponse {
 message LoginRequest {
   string email = 1;
   string password = 2;
+  string mfa_code = 3; // Optional
 }
 
 message LoginResponse {
-  User user = 1;
+  string user_id = 1;
   string access_token = 2;
   string refresh_token = 3;
+  bool mfa_required = 4;
+}
+
+message ValidateTokenRequest {
+  string access_token = 1;
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  string user_id = 2;
+  string email = 3;
 }
 
 message RefreshTokenRequest {
@@ -62,11 +68,21 @@ message LogoutResponse {
   bool success = 1;
 }
 
-message VerifyTokenRequest {
-  string access_token = 1;
+message EnableMFARequest {
+  string user_id = 1;
 }
 
-message VerifyTokenResponse {
-  bool valid = 1;
-  User user = 2;
+message EnableMFAResponse {
+  string secret = 1;
+  string qr_code_url = 2;
+}
+
+message VerifyMFARequest {
+  string user_id = 1;
+  string code = 2;
+}
+
+message VerifyMFAResponse {
+  bool success = 1;
+  repeated string backup_codes = 2;
 }

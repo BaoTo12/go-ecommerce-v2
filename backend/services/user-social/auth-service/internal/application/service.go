@@ -2,166 +2,203 @@ package application
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
+	"time"
 
 	"github.com/titan-commerce/backend/auth-service/internal/domain"
-	"github.com/titan-commerce/backend/pkg/auth"
+	"github.com/titan-commerce/backend/auth-service/internal/infrastructure/token"
 	"github.com/titan-commerce/backend/pkg/errors"
 	"github.com/titan-commerce/backend/pkg/logger"
+	"github.com/pquerna/otp/totp"
 )
 
-type UserRepository interface {
-	Save(ctx context.Context, user *domain.User) error
-	FindByID(ctx context.Context, userID string) (*domain.User, error)
+type AuthRepository interface {
+	SaveUser(ctx context.Context, user *domain.User) error
 	FindByEmail(ctx context.Context, email string) (*domain.User, error)
+	FindByID(ctx context.Context, userID string) (*domain.User, error)
+	UpdateMFA(ctx context.Context, userID, secret string, enabled bool) error
 }
 
-type RefreshTokenRepository interface {
-	Save(ctx context.Context, token *domain.RefreshToken) error
-	FindByToken(ctx context.Context, token string) (*domain.RefreshToken, error)
-	DeleteByToken(ctx context.Context, token string) error
+type TokenRepository interface {
+	BlacklistToken(ctx context.Context, token string, expiration time.Duration) error
+	IsBlacklisted(ctx context.Context, token string) (bool, error)
+	StoreRefreshToken(ctx context.Context, userID, token string, expiration time.Duration) error
+	GetRefreshToken(ctx context.Context, userID string) (string, error)
+	RevokeRefreshToken(ctx context.Context, userID string) error
 }
 
 type AuthService struct {
-	userRepo         UserRepository
-	refreshTokenRepo RefreshTokenRepository
-	jwtService       *auth.JWTService
-	logger           *logger.Logger
+	repo         AuthRepository
+	tokenRepo    TokenRepository
+	tokenService *token.TokenService
+	logger       *logger.Logger
 }
 
-func NewAuthService(userRepo UserRepository, tokenRepo RefreshTokenRepository, jwtService *auth.JWTService, logger *logger.Logger) *AuthService {
+func NewAuthService(repo AuthRepository, tokenRepo TokenRepository, tokenService *token.TokenService, logger *logger.Logger) *AuthService {
 	return &AuthService{
-		userRepo:         userRepo,
-		refreshTokenRepo: tokenRepo,
-		jwtService:       jwtService,
-		logger:           logger,
+		repo:         repo,
+		tokenRepo:    tokenRepo,
+		tokenService: tokenService,
+		logger:       logger,
 	}
 }
 
-// Register creates a new user account (Command)
-func (s *AuthService) Register(ctx context.Context, email, password, name string) (*domain.User, string, string, error) {
-	// Check if user already exists
-	existing, err := s.userRepo.FindByEmail(ctx, email)
-	if err == nil && existing != nil {
-		return nil, "", "", errors.New(errors.ErrAlreadyExists, "user with this email already exists")
+func (s *AuthService) Register(ctx context.Context, email, password, fullName string) (string, string, string, error) {
+	// Check if user exists
+	if _, err := s.repo.FindByEmail(ctx, email); err == nil {
+		return "", "", "", errors.New(errors.ErrConflict, "email already exists")
 	}
 
 	// Create user
-	user, err := domain.NewUser(email, password, name)
+	user, err := domain.NewUser(email, password, fullName)
 	if err != nil {
-		return nil, "", "", err
+		return "", "", "", err
 	}
 
-	// Save user
-	if err := s.userRepo.Save(ctx, user); err != nil {
-		s.logger.Error(err, "failed to save user")
-		return nil, "", "", err
+	if err := s.repo.SaveUser(ctx, user); err != nil {
+		return "", "", "", err
 	}
 
 	// Generate tokens
-	cellID := s.computeCellID(user.ID)
-	accessToken, err := s.jwtService.GenerateAccessToken(user.ID, user.Email, cellID, user.Roles)
+	accessToken, refreshToken, err := s.tokenService.GenerateTokens(user.ID, user.Email)
 	if err != nil {
-		return nil, "", "", err
+		return "", "", "", err
 	}
 
-	refreshToken := domain.NewRefreshToken(user.ID, 30) // 30 days
-	if err := s.refreshTokenRepo.Save(ctx, refreshToken); err != nil {
-		return nil, "", "", err
+	// Store refresh token
+	if err := s.tokenRepo.StoreRefreshToken(ctx, user.ID, refreshToken, 30*24*time.Hour); err != nil {
+		return "", "", "", err
 	}
 
-	s.logger.Infof("User registered: %s (%s)", user.ID, user.Email)
-	return user, accessToken, refreshToken.Token, nil
+	return user.ID, accessToken, refreshToken, nil
 }
 
-// Login authenticates user and returns tokens (Command)
-func (s *AuthService) Login(ctx context.Context, email, password string) (*domain.User, string, string, error) {
-	user, err := s.userRepo.FindByEmail(ctx, email)
+func (s *AuthService) Login(ctx context.Context, email, password, mfaCode string) (string, string, string, bool, error) {
+	user, err := s.repo.FindByEmail(ctx, email)
 	if err != nil {
-		return nil, "", "", errors.New(errors.ErrUnauthorized, "invalid credentials")
+		return "", "", "", false, errors.New(errors.ErrUnauthorized, "invalid credentials")
 	}
 
-	if !user.VerifyPassword(password) {
-		return nil, "", "", errors.New(errors.ErrUnauthorized, "invalid credentials")
+	if !user.CheckPassword(password) {
+		return "", "", "", false, errors.New(errors.ErrUnauthorized, "invalid credentials")
+	}
+
+	// MFA Check
+	if user.MFAEnabled {
+		if mfaCode == "" {
+			return user.ID, "", "", true, nil // Signal MFA required
+		}
+		if !totp.Validate(mfaCode, user.MFASecret) {
+			return "", "", "", true, errors.New(errors.ErrUnauthorized, "invalid MFA code")
+		}
 	}
 
 	// Generate tokens
-	cellID := s.computeCellID(user.ID)
-	accessToken, err := s.jwtService.GenerateAccessToken(user.ID, user.Email, cellID, user.Roles)
+	accessToken, refreshToken, err := s.tokenService.GenerateTokens(user.ID, user.Email)
 	if err != nil {
-		return nil, "", "", err
+		return "", "", "", false, err
 	}
 
-	refreshToken := domain.NewRefreshToken(user.ID, 30)
-	if err := s.refreshTokenRepo.Save(ctx, refreshToken); err != nil {
-		return nil, "", "", err
+	// Store refresh token
+	if err := s.tokenRepo.StoreRefreshToken(ctx, user.ID, refreshToken, 30*24*time.Hour); err != nil {
+		return "", "", "", false, err
 	}
 
-	s.logger.Infof("User logged in: %s (%s)", user.ID, user.Email)
-	return user, accessToken, refreshToken.Token, nil
+	return user.ID, accessToken, refreshToken, false, nil
 }
 
-// RefreshAccessToken generates new access token from refresh token (Command)
-func (s *AuthService) RefreshAccessToken(ctx context.Context, refreshTokenStr string) (string, string, error) {
-	refreshToken, err := s.refreshTokenRepo.FindByToken(ctx, refreshTokenStr)
+func (s *AuthService) ValidateToken(ctx context.Context, accessToken string) (bool, string, string, error) {
+	// Check blacklist
+	blacklisted, err := s.tokenRepo.IsBlacklisted(ctx, accessToken)
 	if err != nil {
+		return false, "", "", err
+	}
+	if blacklisted {
+		return false, "", "", errors.New(errors.ErrUnauthorized, "token is blacklisted")
+	}
+
+	// Validate JWT
+	userID, email, err := s.tokenService.ValidateAccessToken(accessToken)
+	if err != nil {
+		return false, "", "", err
+	}
+
+	return true, userID, email, nil
+}
+
+func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (string, string, error) {
+	// Validate JWT
+	userID, err := s.tokenService.ValidateRefreshToken(refreshToken)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Check if stored
+	storedToken, err := s.tokenRepo.GetRefreshToken(ctx, userID)
+	if err != nil || storedToken != refreshToken {
 		return "", "", errors.New(errors.ErrUnauthorized, "invalid refresh token")
 	}
 
-	if refreshToken.IsExpired() {
-		s.refreshTokenRepo.DeleteByToken(ctx, refreshTokenStr)
-		return "", "", errors.New(errors.ErrUnauthorized, "refresh token expired")
-	}
-
-	user, err := s.userRepo.FindByID(ctx, refreshToken.UserID)
+	// Get user email
+	user, err := s.repo.FindByID(ctx, userID)
 	if err != nil {
 		return "", "", err
 	}
 
-	// Generate new access token
-	cellID := s.computeCellID(user.ID)
-	accessToken, err := s.jwtService.GenerateAccessToken(user.ID, user.Email, cellID, user.Roles)
+	// Generate new tokens
+	newAccessToken, newRefreshToken, err := s.tokenService.GenerateTokens(userID, user.Email)
 	if err != nil {
 		return "", "", err
 	}
 
-	// Generate new refresh token
-	newRefreshToken := domain.NewRefreshToken(user.ID, 30)
-	if err := s.refreshTokenRepo.Save(ctx, newRefreshToken); err != nil {
+	// Rotate refresh token
+	if err := s.tokenRepo.StoreRefreshToken(ctx, userID, newRefreshToken, 30*24*time.Hour); err != nil {
 		return "", "", err
 	}
 
-	// Delete old refresh token
-	s.refreshTokenRepo.DeleteByToken(ctx, refreshTokenStr)
-
-	return accessToken, newRefreshToken.Token, nil
+	return newAccessToken, newRefreshToken, nil
 }
 
-// Logout invalidates refresh token (Command)
-func (s *AuthService) Logout(ctx context.Context, refreshTokenStr string) error {
-	return s.refreshTokenRepo.DeleteByToken(ctx, refreshTokenStr)
+func (s *AuthService) Logout(ctx context.Context, accessToken string) error {
+	// Blacklist access token (15 mins)
+	if err := s.tokenRepo.BlacklistToken(ctx, accessToken, 15*time.Minute); err != nil {
+		return err
+	}
+	return nil
 }
 
-// VerifyToken verifies access token and returns user (Query)
-func (s *AuthService) VerifyToken(ctx context.Context, accessToken string) (*domain.User, error) {
-	claims, err := s.jwtService.VerifyAccessToken(accessToken)
+func (s *AuthService) EnableMFA(ctx context.Context, userID string) (string, string, error) {
+	key, err := totp.Generate(totp.GenerateOpts{
+		Issuer:      "TitanCommerce",
+		AccountName: userID,
+	})
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 
-	user, err := s.userRepo.FindByID(ctx, claims.UserID)
-	if err != nil {
-		return nil, errors.New(errors.ErrUnauthorized, "user not found")
+	// Store secret temporarily or pending verification? 
+	// For simplicity, we'll update user but mark enabled=false until verified, 
+	// or just return secret and expect VerifyMFA to enable it.
+	// Let's do: Update secret, enabled=false.
+	if err := s.repo.UpdateMFA(ctx, userID, key.Secret(), false); err != nil {
+		return "", "", err
 	}
 
-	return user, nil
+	return key.Secret(), key.URL(), nil
 }
 
-// computeCellID computes cell ID for user using consistent hashing
-func (s *AuthService) computeCellID(userID string) string {
-	hash := sha256.Sum256([]byte(userID))
-	hashInt := uint64(hash[0]) | uint64(hash[1])<<8 | uint64(hash[2])<<16 | uint64(hash[3])<<24
-	cellNum := (hashInt % 500) + 1
-	return "cell-" + hex.EncodeToString([]byte{byte(cellNum / 100), byte((cellNum % 100) / 10), byte(cellNum % 10)})
+func (s *AuthService) VerifyMFA(ctx context.Context, userID, code string) (bool, error) {
+	user, err := s.repo.FindByID(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+
+	if !totp.Validate(code, user.MFASecret) {
+		return false, errors.New(errors.ErrUnauthorized, "invalid code")
+	}
+
+	if err := s.repo.UpdateMFA(ctx, userID, user.MFASecret, true); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
