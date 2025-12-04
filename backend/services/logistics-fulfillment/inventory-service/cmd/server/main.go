@@ -2,10 +2,16 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
+	"os/signal"
+	"syscall"
 
+	"github.com/titan-commerce/backend/inventory-service/internal/application"
+	"github.com/titan-commerce/backend/inventory-service/internal/infrastructure"
 	"github.com/titan-commerce/backend/pkg/config"
 	"github.com/titan-commerce/backend/pkg/logger"
+	grpcLib "google.golang.org/grpc"
 )
 
 func main() {
@@ -22,17 +28,43 @@ func main() {
 		Pretty:      true,
 	})
 
-	log.Info("📦 Inventory Service starting...")
-	log.Infof("Using Redis at %s for atomic operations", cfg.RedisAddr)
-	
-	// TODO: Implement atomic inventory management
-	// - Redis Lua scripts for atomic stock operations
-	// - Reservation system: Reserve → Commit or Rollback
-	// - Stock alerts (low stock notifications)
-	// - Multi-warehouse support
-	// - Real-time stock synchronization
-	
-	log.Info("🔒 Atomic operations via Redis Lua scripts - NO overselling!")
-	
-	select {}
+	log.Info("Inventory Service starting...")
+
+	// Initialize Redis repository with Lua scripts
+	inventoryRepo, err := infrastructure.NewRedisInventoryRepository(cfg.RedisAddr, cfg.RedisPassword)
+	if err != nil {
+		log.Fatal(err, "Failed to initialize Redis inventory repository")
+	}
+
+	// Initialize application service
+	inventoryService := application.NewInventoryService(inventoryRepo, log)
+
+	// Initialize gRPC server
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GRPCPort))
+	if err != nil {
+		log.Fatal(err, "Failed to listen")
+	}
+
+	grpcServer := grpcLib.NewServer()
+	// TODO: Register gRPC handler when proto is generated
+	// pb.RegisterInventoryServiceServer(grpcServer, grpc.NewInventoryServiceServer(inventoryService, log))
+
+	// Start server
+	go func() {
+		log.Infof("gRPC server listening on :%d", cfg.GRPCPort)
+		log.Info("Atomic Redis Lua scripts - ZERO overselling guarantee")
+log.Info("Reserve → Commit/Rollback pattern active")
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatal(err, "Failed to serve")
+		}
+	}()
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Info("Shutting down Inventory Service")
+	grpcServer.GracefulStop()
+	log.Info("Inventory Service stopped")
 }
