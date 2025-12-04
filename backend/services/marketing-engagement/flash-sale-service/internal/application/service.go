@@ -139,7 +139,7 @@ func (s *FlashSaleService) GetChallenge(saleID, userID string) string {
 func (s *FlashSaleService) AttemptPurchase(ctx context.Context, saleID, userID string, quantity int, challenge, nonce string) (*domain.FlashSaleReservation, error) {
 	// Step 1: Rate limiting
 	if !s.rateLimiter.Allow(userID, 1) {
-		return nil, errors.New(errors.ErrRateLimited, "rate limit exceeded, please wait")
+		return nil, errors.New(errors.ErrInvalidInput, "rate limit exceeded, please wait")
 	}
 
 	// Step 2: Validate Proof of Work
