@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
-	"time"
 
 	"github.com/titan-commerce/backend/search-service/internal/domain"
 	"github.com/titan-commerce/backend/pkg/errors"

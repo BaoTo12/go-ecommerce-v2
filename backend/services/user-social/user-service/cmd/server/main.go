@@ -9,7 +9,7 @@ import (
 
 	"github.com/titan-commerce/backend/user-service/internal/application"
 	"github.com/titan-commerce/backend/user-service/internal/infrastructure/postgres"
-	"github.com/titan-commerce/backend/user-service/internal/interface/grpc"
+	handler "github.com/titan-commerce/backend/user-service/internal/interface/grpc"
 	pb "github.com/titan-commerce/backend/user-service/proto/user/v1"
 	"github.com/titan-commerce/backend/pkg/config"
 	"github.com/titan-commerce/backend/pkg/logger"
@@ -38,8 +38,8 @@ func main() {
 		log.Fatal(err, "Failed to initialize user repository")
 	}
 
-	// Initialize application service
-	userService := application.NewUserService(userRepo, log)
+	// Initialize application service (without address repository for now)
+	userService := application.NewUserServiceSimple(userRepo, log)
 
 	// Initialize gRPC server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GRPCPort))
@@ -48,7 +48,7 @@ func main() {
 	}
 
 	grpcServer := grpcLib.NewServer()
-	pb.RegisterUserServiceServer(grpcServer, grpc.NewUserServiceServer(userService, log))
+	pb.RegisterUserServiceServer(grpcServer, handler.NewUserServiceServer(userService, log))
 
 	// Start server
 	go func() {
@@ -68,4 +68,3 @@ func main() {
 	grpcServer.GracefulStop()
 	log.Info("User Service stopped")
 }
-

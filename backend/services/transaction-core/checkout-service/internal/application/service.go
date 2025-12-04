@@ -3,7 +3,6 @@ package application
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/titan-commerce/backend/checkout-service/internal/domain"
 	"github.com/titan-commerce/backend/pkg/logger"
@@ -145,7 +144,7 @@ func (s *CheckoutService) runSaga(session *domain.CheckoutSession) {
 
 func (s *CheckoutService) failSaga(session *domain.CheckoutSession, reason string) {
 	session.MarkFailed(reason)
-	s.logger.Errorf("Saga failed for session %s: %s", session.SessionID, reason)
+	s.logger.Error(nil, "Saga failed for session "+session.SessionID+": "+reason)
 }
 
 func (s *CheckoutService) compensateInventory(ctx context.Context, session *domain.CheckoutSession) {

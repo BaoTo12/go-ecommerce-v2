@@ -4,12 +4,10 @@ import (
 	"context"
 
 	"github.com/titan-commerce/backend/social-service/internal/application"
-	"github.com/titan-commerce/backend/social-service/internal/domain"
 	pb "github.com/titan-commerce/backend/social-service/proto/social/v1"
 	"github.com/titan-commerce/backend/pkg/logger"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type SocialServiceServer struct {
@@ -51,7 +49,7 @@ func (s *SocialServiceServer) GetFollowers(ctx context.Context, req *pb.GetFollo
 	for _, f := range followers {
 		protoFollowers = append(protoFollowers, &pb.SocialUser{
 			UserId:     f.FollowerID,
-			FollowedAt: timestamppb.New(f.CreatedAt),
+			FollowedAt: pb.New(f.CreatedAt),
 		})
 	}
 
@@ -71,7 +69,7 @@ func (s *SocialServiceServer) GetFollowing(ctx context.Context, req *pb.GetFollo
 	for _, f := range following {
 		protoFollowing = append(protoFollowing, &pb.SocialUser{
 			UserId:     f.FolloweeID,
-			FollowedAt: timestamppb.New(f.CreatedAt),
+			FollowedAt: pb.New(f.CreatedAt),
 		})
 	}
 

@@ -18,9 +18,11 @@ type Config struct {
 	KafkaBrokers     []string
 	MongoURI         string
 	MongoDatabase    string
+	ElasticsearchURL string
 	GRPCPort         int
 	HTTPPort         int
 	JWTSecret        string
+	JWTRefreshSecret string
 	JWTAccessExpiry  int
 }
 
@@ -37,9 +39,11 @@ func Load() (*Config, error) {
 		KafkaBrokers:     []string{getEnv("KAFKA_BROKERS", "localhost:9092")},
 		MongoURI:         getEnv("MONGO_URI", "mongodb://localhost:27017"),
 		MongoDatabase:    getEnv("MONGO_DATABASE", "titan_commerce"),
+		ElasticsearchURL: getEnv("ELASTICSEARCH_URL", "http://localhost:9200"),
 		GRPCPort:         getEnvInt("GRPC_PORT", 9000),
 		HTTPPort:         getEnvInt("HTTP_PORT", 8080),
 		JWTSecret:        getEnv("JWT_SECRET", "changeme-in-production"),
+		JWTRefreshSecret: getEnv("JWT_REFRESH_SECRET", "changeme-refresh-secret"),
 		JWTAccessExpiry:  getEnvInt("JWT_ACCESS_EXPIRY", 15),
 	}
 

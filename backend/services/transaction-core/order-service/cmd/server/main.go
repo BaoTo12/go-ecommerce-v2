@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"os"
@@ -10,7 +9,7 @@ import (
 
 	"github.com/titan-commerce/backend/order-service/internal/application"
 	"github.com/titan-commerce/backend/order-service/internal/infrastructure/postgres"
-	"github.com/titan-commerce/backend/order-service/internal/interfaces/grpc"
+	handler "github.com/titan-commerce/backend/order-service/internal/interfaces/grpc"
 	"github.com/titan-commerce/backend/pkg/config"
 	"github.com/titan-commerce/backend/pkg/logger"
 	grpcLib "google.golang.org/grpc"
@@ -29,21 +28,21 @@ func main() {
 		Level:       cfg.LogLevel,
 		ServiceName: cfg.ServiceName,
 		CellID:      cfg.CellID,
-		Pretty:      true, // Set to false in production
+		Pretty:      true,
 	})
 
 	log.Info("Starting Order Service")
 
-	// Initialize database
-	db, err := postgres.NewDatabase(cfg.DatabaseURL)
-	if err != nil {
-		log.Fatal(err, "Failed to connect to database")
-	}
-	defer db.Close()
-
 	// Initialize repositories
-	orderRepo := postgres.NewOrderRepository(db)
-	eventStore := postgres.NewEventStore(db)
+	eventStore, err := postgres.NewEventStoreRepository(cfg.DatabaseURL, log)
+	if err != nil {
+		log.Fatal(err, "Failed to connect to event store")
+	}
+
+	orderRepo, err := postgres.NewOrderReadModelRepository(cfg.DatabaseURL, log)
+	if err != nil {
+		log.Fatal(err, "Failed to connect to read model")
+	}
 
 	// Initialize application service
 	orderService := application.NewOrderService(orderRepo, eventStore, log)
@@ -55,7 +54,7 @@ func main() {
 	}
 
 	grpcServer := grpcLib.NewServer()
-	grpc.NewOrderServiceServer(grpcServer, orderService, log)
+	handler.NewOrderServiceServer(grpcServer, orderService, log)
 
 	// Start server in goroutine
 	go func() {

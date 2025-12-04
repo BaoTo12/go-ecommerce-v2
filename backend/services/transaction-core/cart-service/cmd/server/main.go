@@ -8,8 +8,8 @@ import (
 	"syscall"
 
 	"github.com/titan-commerce/backend/cart-service/internal/application"
-	"github.com/titan-commerce/backend/cart-service/internal/infrastructure"
-	"github.com/titan-commerce/backend/cart-service/internal/interface/grpc"
+	infrastructure "github.com/titan-commerce/backend/cart-service/internal/infrastructure/redis"
+	handler "github.com/titan-commerce/backend/cart-service/internal/interface/grpc"
 	pb "github.com/titan-commerce/backend/cart-service/proto/cart/v1"
 	"github.com/titan-commerce/backend/pkg/config"
 	"github.com/titan-commerce/backend/pkg/logger"
@@ -48,7 +48,7 @@ func main() {
 	}
 
 	grpcServer := grpcLib.NewServer()
-	pb.RegisterCartServiceServer(grpcServer, grpc.NewCartServiceServer(cartService, log))
+	pb.RegisterCartServiceServer(grpcServer, handler.NewCartServiceServer(cartService, log))
 
 	// Start server
 	go func() {

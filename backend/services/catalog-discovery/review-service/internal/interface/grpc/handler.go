@@ -9,7 +9,6 @@ import (
 	"github.com/titan-commerce/backend/pkg/logger"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type ReviewServiceServer struct {
@@ -81,6 +80,6 @@ func domainToProto(r *domain.Review) *pb.Review {
 		Rating:    int32(r.Rating),
 		Comment:   r.Comment,
 		Images:    r.Images,
-		CreatedAt: timestamppb.New(r.CreatedAt),
+		CreatedAt: pb.New(r.CreatedAt),
 	}
 }

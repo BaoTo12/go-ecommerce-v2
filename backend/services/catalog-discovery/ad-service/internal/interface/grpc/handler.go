@@ -9,7 +9,6 @@ import (
 	"github.com/titan-commerce/backend/pkg/logger"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type AdServiceServer struct {
@@ -49,11 +48,11 @@ func (s *AdServiceServer) GetAds(ctx context.Context, req *pb.GetAdsRequest) (*p
 	var ads []*pb.Ad
 	for _, c := range campaigns {
 		ads = append(ads, &pb.Ad{
-			Id:            c.ID, // Using Campaign ID as Ad ID for simplicity
+			Id:            c.ID,
 			ProductId:     c.ProductID,
-			Title:         "Sponsored Product", // Placeholder
-			ImageUrl:      "",                  // Placeholder
-			Price:         0,                   // Placeholder
+			Title:         "Sponsored Product",
+			ImageUrl:      "",
+			Price:         0,
 			TrackingToken: c.ID,
 		})
 	}

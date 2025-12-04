@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/titan-commerce/backend/cart-service/internal/application"
+	"github.com/titan-commerce/backend/cart-service/internal/domain"
 	pb "github.com/titan-commerce/backend/cart-service/proto/cart/v1"
 	"github.com/titan-commerce/backend/pkg/logger"
 	"google.golang.org/grpc/codes"
@@ -24,7 +25,7 @@ func NewCartServiceServer(service *application.CartService, logger *logger.Logge
 }
 
 func (s *CartServiceServer) AddItem(ctx context.Context, req *pb.AddItemRequest) (*pb.AddItemResponse, error) {
-	cart, err := s.service.AddItem(ctx, req.UserId, req.ProductId, req.ProductName, req.Price, int(req.Quantity))
+	cart, err := s.service.AddToCart(ctx, req.UserId, req.ProductId, req.ProductName, int(req.Quantity), req.Price)
 	if err != nil {
 		s.logger.Error(err, "failed to add item to cart")
 		return nil, status.Error(codes.Internal, err.Error())
@@ -36,7 +37,7 @@ func (s *CartServiceServer) AddItem(ctx context.Context, req *pb.AddItemRequest)
 }
 
 func (s *CartServiceServer) RemoveItem(ctx context.Context, req *pb.RemoveItemRequest) (*pb.RemoveItemResponse, error) {
-	cart, err := s.service.RemoveItem(ctx, req.UserId, req.ProductId)
+	cart, err := s.service.RemoveFromCart(ctx, req.UserId, req.ProductId)
 	if err != nil {
 		s.logger.Error(err, "failed to remove item from cart")
 		return nil, status.Error(codes.Internal, err.Error())
@@ -74,7 +75,7 @@ func domainToProto(cart *domain.Cart) *pb.Cart {
 		items[i] = &pb.CartItem{
 			ProductId:   item.ProductID,
 			ProductName: item.ProductName,
-			Price:       item.Price,
+			Price:       item.UnitPrice,
 			Quantity:    int32(item.Quantity),
 		}
 	}
@@ -82,6 +83,6 @@ func domainToProto(cart *domain.Cart) *pb.Cart {
 	return &pb.Cart{
 		UserId:      cart.UserID,
 		Items:       items,
-		TotalAmount: cart.TotalAmount,
+		TotalAmount: cart.Total,
 	}
 }

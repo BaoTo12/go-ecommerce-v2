@@ -9,7 +9,7 @@ import (
 
 	"github.com/titan-commerce/backend/wallet-service/internal/application"
 	"github.com/titan-commerce/backend/wallet-service/internal/infrastructure/postgres"
-	"github.com/titan-commerce/backend/wallet-service/internal/interface/grpc"
+	handler "github.com/titan-commerce/backend/wallet-service/internal/interface/grpc"
 	pb "github.com/titan-commerce/backend/wallet-service/proto/wallet/v1"
 	"github.com/titan-commerce/backend/pkg/config"
 	"github.com/titan-commerce/backend/pkg/logger"
@@ -53,7 +53,7 @@ func main() {
 	}
 
 	grpcServer := grpcLib.NewServer()
-	pb.RegisterWalletServiceServer(grpcServer, grpc.NewWalletServiceServer(walletService, log))
+	pb.RegisterWalletServiceServer(grpcServer, handler.NewWalletServiceServer(walletService, log))
 
 	// Start server
 	go func() {
@@ -75,4 +75,3 @@ func main() {
 	grpcServer.GracefulStop()
 	log.Info("Wallet Service stopped")
 }
-

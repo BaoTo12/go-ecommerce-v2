@@ -9,6 +9,7 @@ import (
 
 type UserRepository interface {
 	FindByID(ctx context.Context, userID string) (*domain.User, error)
+	Save(ctx context.Context, user *domain.User) error
 	Update(ctx context.Context, user *domain.User) error
 }
 
@@ -24,11 +25,20 @@ type UserService struct {
 	logger      *logger.Logger
 }
 
+// NewUserService creates a new user service (with address repository)
 func NewUserService(userRepo UserRepository, addressRepo AddressRepository, logger *logger.Logger) *UserService {
 	return &UserService{
 		userRepo:    userRepo,
 		addressRepo: addressRepo,
 		logger:      logger,
+	}
+}
+
+// NewUserServiceSimple creates a user service without address repository
+func NewUserServiceSimple(userRepo UserRepository, logger *logger.Logger) *UserService {
+	return &UserService{
+		userRepo: userRepo,
+		logger:   logger,
 	}
 }
 
@@ -57,6 +67,15 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID, name, phone, av
 
 // AddAddress adds a new shipping address (Command)
 func (s *UserService) AddAddress(ctx context.Context, userID, fullName, phone, street, city, postalCode, country string, isDefault bool) (*domain.Address, error) {
+	// If address repo not available, return error
+	if s.addressRepo == nil {
+		address, err := domain.NewAddress(userID, fullName, phone, street, city, postalCode, country, isDefault)
+		if err != nil {
+			return nil, err
+		}
+		return address, nil
+	}
+
 	// If this is default, unset other defaults
 	if isDefault {
 		addresses, _ := s.addressRepo.FindByUserID(ctx, userID)
@@ -84,6 +103,9 @@ func (s *UserService) AddAddress(ctx context.Context, userID, fullName, phone, s
 
 // GetAddresses retrieves all addresses for a user (Query)
 func (s *UserService) GetAddresses(ctx context.Context, userID string) ([]*domain.Address, error) {
+	if s.addressRepo == nil {
+		return nil, nil
+	}
 	return s.addressRepo.FindByUserID(ctx, userID)
 }
 

@@ -4,137 +4,118 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/titan-commerce/backend/pkg/errors"
 )
 
-// CouponType represents the type of coupon
 type CouponType string
+type CouponStatus string
 
 const (
-	CouponPercentage CouponType = "PERCENTAGE"
-	CouponFixed      CouponType = "FIXED"
-	CouponFreeShip   CouponType = "FREE_SHIPPING"
-	CouponBOGO       CouponType = "BOGO"
+	CouponTypePercentage CouponType = "PERCENTAGE"
+	CouponTypeFixed      CouponType = "FIXED"
+	CouponTypeFreeShip   CouponType = "FREE_SHIPPING"
+
+	CouponStatusActive   CouponStatus = "ACTIVE"
+	CouponStatusExpired  CouponStatus = "EXPIRED"
+	CouponStatusDepleted CouponStatus = "DEPLETED"
 )
 
-// Coupon represents a discount coupon
 type Coupon struct {
-	CouponID       string
-	Code           string
-	Type           CouponType
-	DiscountValue  int64 // percentage * 100 or fixed amount in cents
-	MinOrderValue  int64
-	MaxDiscount    int64
-	UsageLimit     int
-	UsageCount     int
-	PerUserLimit   int
-	ValidFrom      time.Time
-	ValidUntil     time.Time
-	IsActive       bool
-	ApplicableProducts []string
-	ApplicableCategories []string
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID              string
+	Code            string
+	Name            string
+	Description     string
+	Type            CouponType
+	Value           float64     // discount % or fixed amount
+	MinOrderValue   float64     // minimum order to apply
+	MaxDiscount     float64     // cap for percentage discounts
+	TotalQuantity   int
+	UsedQuantity    int
+	MaxPerUser      int
+	ValidFrom       time.Time
+	ValidUntil      time.Time
+	ApplicableCategories []string // empty = all
+	ApplicableProducts   []string // empty = all
+	Status          CouponStatus
+	CreatedAt       time.Time
 }
 
-// NewCoupon creates a new coupon
-func NewCoupon(code string, couponType CouponType, discountValue, minOrderValue int64) (*Coupon, error) {
-	if code == "" {
-		return nil, errors.New(errors.ErrInvalidInput, "coupon code is required")
-	}
-	if discountValue <= 0 {
-		return nil, errors.New(errors.ErrInvalidInput, "discount value must be positive")
-	}
+type CouponUsage struct {
+	ID        string
+	CouponID  string
+	UserID    string
+	OrderID   string
+	Discount  float64
+	UsedAt    time.Time
+}
 
-	now := time.Now()
+func NewCoupon(code, name, description string, couponType CouponType, value, minOrder, maxDiscount float64, totalQty, maxPerUser int, validFrom, validUntil time.Time) *Coupon {
 	return &Coupon{
-		CouponID:      uuid.New().String(),
-		Code:          code,
-		Type:          couponType,
-		DiscountValue: discountValue,
-		MinOrderValue: minOrderValue,
-		UsageLimit:    -1, // unlimited
-		UsageCount:    0,
-		PerUserLimit:  -1, // unlimited
-		ValidFrom:     now,
-		ValidUntil:    now.AddDate(0, 1, 0), // 1 month default
-		IsActive:      true,
-		CreatedAt:     now,
-		UpdatedAt:     now,
-	}, nil
+		ID:              uuid.New().String(),
+		Code:            code,
+		Name:            name,
+		Description:     description,
+		Type:            couponType,
+		Value:           value,
+		MinOrderValue:   minOrder,
+		MaxDiscount:     maxDiscount,
+		TotalQuantity:   totalQty,
+		UsedQuantity:    0,
+		MaxPerUser:      maxPerUser,
+		ValidFrom:       validFrom,
+		ValidUntil:      validUntil,
+		Status:          CouponStatusActive,
+		CreatedAt:       time.Now(),
+	}
 }
 
-// IsValid checks if coupon is currently valid
 func (c *Coupon) IsValid() bool {
 	now := time.Now()
-	return c.IsActive &&
-		now.After(c.ValidFrom) &&
+	return c.Status == CouponStatusActive && 
+		now.After(c.ValidFrom) && 
 		now.Before(c.ValidUntil) &&
-		(c.UsageLimit == -1 || c.UsageCount < c.UsageLimit)
+		c.UsedQuantity < c.TotalQuantity
 }
 
-// CanApplyToOrder checks if coupon can be applied to an order
-func (c *Coupon) CanApplyToOrder(orderValue int64) bool {
-	return c.IsValid() && orderValue >= c.MinOrderValue
-}
-
-// CalculateDiscount calculates the discount amount
-func (c *Coupon) CalculateDiscount(orderValue int64) int64 {
-	if !c.CanApplyToOrder(orderValue) {
+func (c *Coupon) CalculateDiscount(orderValue float64) float64 {
+	if orderValue < c.MinOrderValue {
 		return 0
 	}
 
-	var discount int64
-
+	var discount float64
 	switch c.Type {
-	case CouponPercentage:
-		discount = (orderValue * c.DiscountValue) / 10000 // discount value is percentage * 100
+	case CouponTypePercentage:
+		discount = orderValue * (c.Value / 100)
 		if c.MaxDiscount > 0 && discount > c.MaxDiscount {
 			discount = c.MaxDiscount
 		}
-	case CouponFixed:
-		discount = c.DiscountValue
-		if discount > orderValue {
-			discount = orderValue
-		}
-	case CouponFreeShip:
-		// Handled by order service
-		discount = 0
+	case CouponTypeFixed:
+		discount = c.Value
+	case CouponTypeFreeShip:
+		discount = c.Value // shipping cost
 	}
 
 	return discount
 }
 
-// Use increments usage count
-func (c *Coupon) Use() error {
-	if !c.IsValid() {
-		return errors.New(errors.ErrInvalidInput, "coupon is not valid")
-	}
-
-	c.UsageCount++
-	c.UpdatedAt = time.Now()
-	return nil
-}
-
-// CouponUsage tracks individual coupon usage
-type CouponUsage struct {
-	UsageID    string
-	CouponID   string
-	UserID     string
-	OrderID    string
-	Discount   int64
-	UsedAt     time.Time
-}
-
-// NewCouponUsage creates a new usage record
-func NewCouponUsage(couponID, userID, orderID string, discount int64) *CouponUsage {
-	return &CouponUsage{
-		UsageID:  uuid.New().String(),
-		CouponID: couponID,
-		UserID:   userID,
-		OrderID:  orderID,
-		Discount: discount,
-		UsedAt:   time.Now(),
+func (c *Coupon) Use() {
+	c.UsedQuantity++
+	if c.UsedQuantity >= c.TotalQuantity {
+		c.Status = CouponStatusDepleted
 	}
 }
 
+func (c *Coupon) CheckExpiry() {
+	if time.Now().After(c.ValidUntil) {
+		c.Status = CouponStatusExpired
+	}
+}
+
+type Repository interface {
+	Save(ctx interface{}, coupon *Coupon) error
+	FindByID(ctx interface{}, couponID string) (*Coupon, error)
+	FindByCode(ctx interface{}, code string) (*Coupon, error)
+	Update(ctx interface{}, coupon *Coupon) error
+	FindActive(ctx interface{}) ([]*Coupon, error)
+	SaveUsage(ctx interface{}, usage *CouponUsage) error
+	GetUserUsage(ctx interface{}, couponID, userID string) (int, error)
+}

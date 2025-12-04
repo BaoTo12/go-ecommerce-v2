@@ -6,88 +6,123 @@ import (
 	"github.com/google/uuid"
 )
 
-// RiskLevel represents the fraud risk level
+type FraudDecision string
 type RiskLevel string
 
 const (
-	RiskLow      RiskLevel = "LOW"
-	RiskMedium   RiskLevel = "MEDIUM"
-	RiskHigh     RiskLevel = "HIGH"
-	RiskCritical RiskLevel = "CRITICAL"
+	FraudDecisionAllow   FraudDecision = "ALLOW"
+	FraudDecisionReview  FraudDecision = "REVIEW"
+	FraudDecisionBlock   FraudDecision = "BLOCK"
+
+	RiskLevelLow      RiskLevel = "LOW"
+	RiskLevelMedium   RiskLevel = "MEDIUM"
+	RiskLevelHigh     RiskLevel = "HIGH"
+	RiskLevelCritical RiskLevel = "CRITICAL"
 )
 
-// FraudCheck represents a fraud detection analysis
 type FraudCheck struct {
-	CheckID          string
-	OrderID          string
-	UserID           string
-	RiskScore        float64 // 0.0 - 1.0
-	RiskLevel        RiskLevel
-	Flags            []FraudFlag
-	Recommendation   string // APPROVE, REVIEW, REJECT
-	Reasons          []string
-	DeviceFingerprint string
-	IPAddress        string
-	Location         string
-	CreatedAt        time.Time
+	ID              string
+	TransactionID   string
+	UserID          string
+	Amount          float64
+	Currency        string
+	IP              string
+	DeviceID        string
+	UserAgent       string
+	Features        FraudFeatures
+	Score           float64 // 0-1, higher = more fraudulent
+	RiskLevel       RiskLevel
+	Decision        FraudDecision
+	Reasons         []string
+	ProcessingTime  int64 // milliseconds
+	CreatedAt       time.Time
 }
 
-// FraudFlag represents a specific fraud indicator
-type FraudFlag struct {
-	Type     string  // velocity, location, card, behavior
-	Severity string  // low, medium, high
-	Score    float64
-	Message  string
+type FraudFeatures struct {
+	AccountAgeDays       int
+	TotalOrders          int
+	AvgOrderValue        float64
+	OrdersLast24h        int
+	OrdersLast7d         int
+	FailedPaymentsLast7d int
+	UniqueDevices        int
+	UniqueIPs            int
+	CountryMismatch      bool
+	HighRiskCountry      bool
+	NewDevice            bool
+	NewIP                bool
+	VelocityScore        float64
+	AmountDeviation      float64 // std deviations from user's avg
 }
 
-// NewFraudCheck creates a new fraud check
-func NewFraudCheck(orderID, userID, ipAddress string) *FraudCheck {
+type FraudRule struct {
+	ID          string
+	Name        string
+	Description string
+	Condition   string // e.g., "amount > 10000 && new_device"
+	Action      FraudDecision
+	ScoreWeight float64
+	IsActive    bool
+	Priority    int
+	CreatedAt   time.Time
+}
+
+type FraudAlert struct {
+	ID           string
+	FraudCheckID string
+	AlertType    string
+	Severity     RiskLevel
+	Message      string
+	Acknowledged bool
+	ResolvedAt   *time.Time
+	CreatedAt    time.Time
+}
+
+func NewFraudCheck(txnID, userID string, amount float64, currency, ip, deviceID, userAgent string) *FraudCheck {
 	return &FraudCheck{
-		CheckID:   uuid.New().String(),
-		OrderID:   orderID,
-		UserID:    userID,
-		IPAddress: ipAddress,
-		Flags:     []FraudFlag{},
-		Reasons:   []string{},
-		CreatedAt: time.Now(),
+		ID:            uuid.New().String(),
+		TransactionID: txnID,
+		UserID:        userID,
+		Amount:        amount,
+		Currency:      currency,
+		IP:            ip,
+		DeviceID:      deviceID,
+		UserAgent:     userAgent,
+		Reasons:       []string{},
+		CreatedAt:     time.Now(),
 	}
 }
 
-// CalculateRisk calculates overall risk score and level
-func (f *FraudCheck) CalculateRisk() {
-	var totalScore float64
-	for _, flag := range f.Flags {
-		totalScore += flag.Score
-	}
-
-	f.RiskScore = totalScore / float64(len(f.Flags))
-
-	if f.RiskScore < 0.3 {
-		f.RiskLevel = RiskLow
-		f.Recommendation = "APPROVE"
-	} else if f.RiskScore < 0.6 {
-		f.RiskLevel = RiskMedium
-		f.Recommendation = "REVIEW"
-	} else if f.RiskScore < 0.8 {
-		f.RiskLevel = RiskHigh
-		f.Recommendation = "REVIEW"
-	} else {
-		f.RiskLevel = RiskCritical
-		f.Recommendation = "REJECT"
+func (fc *FraudCheck) SetScore(score float64) {
+	fc.Score = score
+	
+	switch {
+	case score < 0.3:
+		fc.RiskLevel = RiskLevelLow
+		fc.Decision = FraudDecisionAllow
+	case score < 0.7:
+		fc.RiskLevel = RiskLevelMedium
+		fc.Decision = FraudDecisionReview
+	case score < 0.9:
+		fc.RiskLevel = RiskLevelHigh
+		fc.Decision = FraudDecisionReview
+	default:
+		fc.RiskLevel = RiskLevelCritical
+		fc.Decision = FraudDecisionBlock
 	}
 }
 
-// UserRiskProfile represents a user's fraud risk profile
-type UserRiskProfile struct {
-	UserID              string
-	TrustScore          float64
-	TotalOrders         int
-	FailedOrders        int
-	ChargebackCount     int
-	AccountAge          int // days
-	VerificationStatus  string
-	LastFraudCheck      *time.Time
-	CreatedAt           time.Time
-	UpdatedAt           time.Time
+func (fc *FraudCheck) AddReason(reason string) {
+	fc.Reasons = append(fc.Reasons, reason)
 }
 
+type Repository interface {
+	Save(ctx interface{}, check *FraudCheck) error
+	FindByID(ctx interface{}, checkID string) (*FraudCheck, error)
+	FindByTransaction(ctx interface{}, txnID string) (*FraudCheck, error)
+	FindByUser(ctx interface{}, userID string, limit int) ([]*FraudCheck, error)
+	GetActiveRules(ctx interface{}) ([]*FraudRule, error)
+	SaveAlert(ctx interface{}, alert *FraudAlert) error
+	GetUnresolvedAlerts(ctx interface{}) ([]*FraudAlert, error)
+	GetUserStats(ctx interface{}, userID string) (*FraudFeatures, error)
+}

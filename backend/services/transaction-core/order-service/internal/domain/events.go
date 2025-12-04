@@ -14,6 +14,12 @@ const (
 	EventTypeOrderStatusUpdated EventType = "order.status.updated"
 )
 
+// DomainEvent interface for all domain events
+type DomainEvent interface {
+	EventType() string
+	OccurredAt() time.Time
+}
+
 // OrderEvent represents a domain event
 type OrderEvent struct {
 	ID          string
@@ -41,3 +47,54 @@ func NewOrderCreatedEvent(order *Order) *OrderEvent {
 		Version:   order.Version,
 	}
 }
+
+// OrderCreatedEvent for eventstore deserialization
+type OrderCreatedEvent struct {
+	OrderID   string    `json:"order_id"`
+	UserID    string    `json:"user_id"`
+	Total     float64   `json:"total"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (e *OrderCreatedEvent) EventType() string    { return "OrderCreated" }
+func (e *OrderCreatedEvent) OccurredAt() time.Time { return e.CreatedAt }
+
+// OrderPaidEvent
+type OrderPaidEvent struct {
+	OrderID   string    `json:"order_id"`
+	PaymentID string    `json:"payment_id"`
+	Amount    float64   `json:"amount"`
+	PaidAt    time.Time `json:"paid_at"`
+}
+
+func (e *OrderPaidEvent) EventType() string    { return "OrderPaid" }
+func (e *OrderPaidEvent) OccurredAt() time.Time { return e.PaidAt }
+
+// OrderShippedEvent
+type OrderShippedEvent struct {
+	OrderID    string    `json:"order_id"`
+	TrackingNo string    `json:"tracking_no"`
+	ShippedAt  time.Time `json:"shipped_at"`
+}
+
+func (e *OrderShippedEvent) EventType() string    { return "OrderShipped" }
+func (e *OrderShippedEvent) OccurredAt() time.Time { return e.ShippedAt }
+
+// OrderCompletedEvent
+type OrderCompletedEvent struct {
+	OrderID     string    `json:"order_id"`
+	CompletedAt time.Time `json:"completed_at"`
+}
+
+func (e *OrderCompletedEvent) EventType() string    { return "OrderCompleted" }
+func (e *OrderCompletedEvent) OccurredAt() time.Time { return e.CompletedAt }
+
+// OrderCancelledEvent
+type OrderCancelledEvent struct {
+	OrderID     string    `json:"order_id"`
+	Reason      string    `json:"reason"`
+	CancelledAt time.Time `json:"cancelled_at"`
+}
+
+func (e *OrderCancelledEvent) EventType() string    { return "OrderCancelled" }
+func (e *OrderCancelledEvent) OccurredAt() time.Time { return e.CancelledAt }

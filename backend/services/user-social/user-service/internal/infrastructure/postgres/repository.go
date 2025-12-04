@@ -73,6 +73,10 @@ func (r *UserRepository) Save(ctx context.Context, user *domain.User) error {
 	return nil
 }
 
+func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
+	return r.Save(ctx, user)
+}
+
 func (r *UserRepository) FindByID(ctx context.Context, userID string) (*domain.User, error) {
 	query := `
 		SELECT id, email, full_name, phone_number, avatar_url, 

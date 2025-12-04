@@ -1,0 +1,343 @@
+# Titan Commerce Helm Values
+# Default configuration for all environments
+
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+  
+  # Cell configuration
+  cell:
+    id: "cell-001"
+    region: "us-east-1"
+    totalCells: 500
+
+# ===== MICROSERVICES =====
+
+# Transaction Core Services
+orderService:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: titan-commerce/order-service
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+  service:
+    type: ClusterIP
+    port: 8080
+    grpcPort: 9090
+  env:
+    LOG_LEVEL: info
+    DB_HOST: "{{ .Release.Name }}-postgresql"
+    DB_PORT: "5432"
+    KAFKA_BROKERS: "{{ .Release.Name }}-kafka:9092"
+
+paymentService:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: titan-commerce/payment-service
+    tag: "latest"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 70
+  secrets:
+    stripeApiKey: ""
+    paypalClientId: ""
+    paypalSecret: ""
+
+cartService:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: titan-commerce/cart-service
+    tag: "latest"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 30
+    targetCPUUtilizationPercentage: 60
+  env:
+    REDIS_HOST: "{{ .Release.Name }}-redis-master"
+    REDIS_PORT: "6379"
+    CART_TTL_SECONDS: "604800"
+
+checkoutService:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: titan-commerce/checkout-service
+    tag: "latest"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+
+inventoryService:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: titan-commerce/inventory-service
+    tag: "latest"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Catalog Discovery Services
+productService:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: titan-commerce/product-service
+    tag: "latest"
+  env:
+    MONGO_URI: "mongodb://{{ .Release.Name }}-mongodb:27017"
+
+searchService:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: titan-commerce/search-service
+    tag: "latest"
+  env:
+    ELASTICSEARCH_URL: "http://{{ .Release.Name }}-elasticsearch:9200"
+
+# User Social Services
+authService:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: titan-commerce/auth-service
+    tag: "latest"
+  secrets:
+    jwtSecret: ""
+    jwtRefreshSecret: ""
+  env:
+    ACCESS_TOKEN_TTL: "15m"
+    REFRESH_TOKEN_TTL: "720h"
+
+userService:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: titan-commerce/user-service
+    tag: "latest"
+
+notificationService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: titan-commerce/notification-service
+    tag: "latest"
+  env:
+    SMTP_HOST: ""
+    SMS_PROVIDER: "twilio"
+
+# Communication Services
+chatService:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: titan-commerce/chat-service
+    tag: "latest"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+livestreamService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: titan-commerce/livestream-service
+    tag: "latest"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+
+# Marketing Services
+flashSaleService:
+  enabled: true
+  replicaCount: 5
+  image:
+    repository: titan-commerce/flash-sale-service
+    tag: "latest"
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 50
+  env:
+    POW_DIFFICULTY: "4"
+    RATE_LIMIT_RPS: "10"
+
+gamificationService:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: titan-commerce/gamification-service
+    tag: "latest"
+
+# Intelligence Services
+fraudService:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: titan-commerce/fraud-service
+    tag: "latest"
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 2Gi
+
+pricingService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: titan-commerce/pricing-service
+    tag: "latest"
+
+analyticsService:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: titan-commerce/analytics-service
+    tag: "latest"
+
+# ===== DEPENDENCIES =====
+
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: ""
+    database: titancommerce
+  primary:
+    persistence:
+      size: 50Gi
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 2
+        memory: 4Gi
+
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: ""
+  master:
+    persistence:
+      size: 10Gi
+  replica:
+    replicaCount: 2
+
+mongodb:
+  enabled: true
+  auth:
+    rootPassword: ""
+    database: titancommerce
+  persistence:
+    size: 50Gi
+
+kafka:
+  enabled: true
+  replicaCount: 3
+  persistence:
+    size: 50Gi
+  zookeeper:
+    replicaCount: 3
+
+elasticsearch:
+  enabled: true
+  master:
+    replicaCount: 3
+  data:
+    replicaCount: 2
+    persistence:
+      size: 100Gi
+
+# ===== INGRESS =====
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: api.titancommerce.io
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: titan-commerce-tls
+      hosts:
+        - api.titancommerce.io
+
+# ===== OBSERVABILITY =====
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

@@ -19,31 +19,53 @@ const (
 type NotificationChannel string
 
 const (
-	NotificationChannelEmail  NotificationChannel = "EMAIL"
-	NotificationChannelSMS    NotificationChannel = "SMS"
-	NotificationChannelPush   NotificationChannel = "PUSH"
-	NotificationChannelInApp  NotificationChannel = "IN_APP"
+	NotificationChannelEmail NotificationChannel = "EMAIL"
+	NotificationChannelSMS   NotificationChannel = "SMS"
+	NotificationChannelPush  NotificationChannel = "PUSH"
+	NotificationChannelInApp NotificationChannel = "IN_APP"
 )
 
 type Notification struct {
 	ID        string
 	UserID    string
 	Type      NotificationType
+	Channel   NotificationChannel
 	Title     string
-	Message   string
+	Content   string
+	Message   string // Alias for Content
 	Read      bool
 	CreatedAt time.Time
+	SentAt    time.Time
 }
 
 func NewNotification(userID string, notifType NotificationType, title, message string) *Notification {
+	now := time.Now()
 	return &Notification{
 		ID:        uuid.New().String(),
 		UserID:    userID,
 		Type:      notifType,
 		Title:     title,
+		Content:   message,
 		Message:   message,
 		Read:      false,
-		CreatedAt: time.Now(),
+		CreatedAt: now,
+		SentAt:    now,
+	}
+}
+
+func NewNotificationWithChannel(userID string, notifType NotificationType, channel NotificationChannel, title, content string) *Notification {
+	now := time.Now()
+	return &Notification{
+		ID:        uuid.New().String(),
+		UserID:    userID,
+		Type:      notifType,
+		Channel:   channel,
+		Title:     title,
+		Content:   content,
+		Message:   content,
+		Read:      false,
+		CreatedAt: now,
+		SentAt:    now,
 	}
 }
 

@@ -6,118 +6,160 @@ import (
 	"github.com/google/uuid"
 )
 
-// UserPoints represents a user's points balance
-type UserPoints struct {
-	UserID         string
-	TotalPoints    int
-	AvailablePoints int
-	LifetimeEarned int
-	LifetimeSpent  int
-	Level          int
-	UpdatedAt      time.Time
+type CoinTransactionType string
+
+const (
+	CoinTxnEarn   CoinTransactionType = "EARN"
+	CoinTxnSpend  CoinTransactionType = "SPEND"
+	CoinTxnExpire CoinTransactionType = "EXPIRE"
+)
+
+// CoinWallet represents a user's Shopee Coins balance
+type CoinWallet struct {
+	UserID    string
+	Balance   int
+	Lifetime  int // Total coins ever earned
+	UpdatedAt time.Time
 }
 
-// PointsTransaction represents a points transaction
-type PointsTransaction struct {
-	TransactionID string
+type CoinTransaction struct {
+	ID          string
+	UserID      string
+	Amount      int
+	Type        CoinTransactionType
+	Source      string // "check_in", "purchase", "game", "mission"
+	Description string
+	CreatedAt   time.Time
+}
+
+// DailyCheckIn tracks user check-in streaks
+type DailyCheckIn struct {
 	UserID        string
-	Points        int // positive for earn, negative for spend
-	Type          string // PURCHASE, REVIEW, REFERRAL, REDEEM, etc.
-	Reference     string // order_id, review_id, etc.
-	Description   string
-	CreatedAt     time.Time
+	LastCheckIn   time.Time
+	CurrentStreak int
+	LongestStreak int
+	TotalCheckIns int
 }
 
-// Badge represents an achievement badge
-type Badge struct {
-	BadgeID     string
+type Mission struct {
+	ID          string
 	Name        string
 	Description string
-	IconURL     string
-	Criteria    BadgeCriteria
-	Rarity      string // COMMON, RARE, EPIC, LEGENDARY
+	Type        string // "purchase", "review", "share", "invite"
+	Target      int    // e.g., buy 3 items
+	Reward      int    // coins reward
+	StartTime   time.Time
+	EndTime     time.Time
+	IsActive    bool
 }
 
-// BadgeCriteria defines how to earn a badge
-type BadgeCriteria struct {
-	Type      string // orders, reviews, points, streak
-	Threshold int
+type UserMission struct {
+	ID         string
+	UserID     string
+	MissionID  string
+	Progress   int
+	Completed  bool
+	ClaimedAt  *time.Time
+	UpdatedAt  time.Time
 }
 
-// UserBadge represents a user's earned badge
-type UserBadge struct {
-	UserID    string
-	BadgeID   string
-	EarnedAt  time.Time
+type LuckyDrawPrize struct {
+	ID          string
+	Name        string
+	Type        string // "coins", "voucher", "product", "nothing"
+	Value       int
+	Probability float64 // 0-100
+	ImageURL    string
 }
 
-// Reward represents a redeemable reward
-type Reward struct {
-	RewardID      string
-	Name          string
-	Description   string
-	PointsCost    int
-	RewardType    string // DISCOUNT, PRODUCT, FREE_SHIPPING
-	Value         int64
-	Stock         int
-	IsActive      bool
+type LuckyDrawResult struct {
+	ID         string
+	UserID     string
+	PrizeID    string
+	Prize      *LuckyDrawPrize
+	SpunAt     time.Time
 }
 
-// NewUserPoints creates a new user points account
-func NewUserPoints(userID string) *UserPoints {
-	return &UserPoints{
-		UserID:          userID,
-		TotalPoints:     0,
-		AvailablePoints: 0,
-		LifetimeEarned:  0,
-		LifetimeSpent:   0,
-		Level:           1,
-		UpdatedAt:       time.Now(),
+func NewCoinWallet(userID string) *CoinWallet {
+	return &CoinWallet{
+		UserID:    userID,
+		Balance:   0,
+		Lifetime:  0,
+		UpdatedAt: time.Now(),
 	}
 }
 
-// Earn adds points to user account
-func (u *UserPoints) Earn(points int, transType, reference, description string) *PointsTransaction {
-	u.TotalPoints += points
-	u.AvailablePoints += points
-	u.LifetimeEarned += points
-	u.UpdatedAt = time.Now()
-	u.calculateLevel()
+func (w *CoinWallet) Earn(amount int) {
+	w.Balance += amount
+	w.Lifetime += amount
+	w.UpdatedAt = time.Now()
+}
 
-	return &PointsTransaction{
-		TransactionID: uuid.New().String(),
-		UserID:        u.UserID,
-		Points:        points,
-		Type:          transType,
-		Reference:     reference,
-		Description:   description,
-		CreatedAt:     time.Now(),
+func (w *CoinWallet) Spend(amount int) bool {
+	if w.Balance < amount {
+		return false
+	}
+	w.Balance -= amount
+	w.UpdatedAt = time.Now()
+	return true
+}
+
+func NewCoinTransaction(userID string, amount int, txnType CoinTransactionType, source, desc string) *CoinTransaction {
+	return &CoinTransaction{
+		ID:          uuid.New().String(),
+		UserID:      userID,
+		Amount:      amount,
+		Type:        txnType,
+		Source:      source,
+		Description: desc,
+		CreatedAt:   time.Now(),
 	}
 }
 
-// Spend deducts points from user account
-func (u *UserPoints) Spend(points int, transType, reference, description string) (*PointsTransaction, error) {
-	if u.AvailablePoints < points {
-		return nil, nil // Insufficient points
+func (d *DailyCheckIn) CheckIn() (int, bool) {
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	lastDay := time.Date(d.LastCheckIn.Year(), d.LastCheckIn.Month(), d.LastCheckIn.Day(), 0, 0, 0, 0, d.LastCheckIn.Location())
+
+	// Already checked in today
+	if today.Equal(lastDay) {
+		return 0, false
 	}
 
-	u.AvailablePoints -= points
-	u.LifetimeSpent += points
-	u.UpdatedAt = time.Now()
+	d.LastCheckIn = now
+	d.TotalCheckIns++
 
-	return &PointsTransaction{
-		TransactionID: uuid.New().String(),
-		UserID:        u.UserID,
-		Points:        -points,
-		Type:          transType,
-		Reference:     reference,
-		Description:   description,
-		CreatedAt:     time.Now(),
-	}, nil
+	// Check if streak continues
+	yesterDay := today.AddDate(0, 0, -1)
+	if lastDay.Equal(yesterDay) {
+		d.CurrentStreak++
+	} else {
+		d.CurrentStreak = 1
+	}
+
+	if d.CurrentStreak > d.LongestStreak {
+		d.LongestStreak = d.CurrentStreak
+	}
+
+	// Calculate reward based on streak (Day 1: 1 coin, Day 7: 10 coins)
+	reward := d.CurrentStreak
+	if reward > 10 {
+		reward = 10
+	}
+
+	return reward, true
 }
 
-func (u *UserPoints) calculateLevel() {
-	// Simple level calculation: 1 level per 1000 points
-	u.Level = (u.LifetimeEarned / 1000) + 1
+type Repository interface {
+	GetWallet(ctx interface{}, userID string) (*CoinWallet, error)
+	SaveWallet(ctx interface{}, wallet *CoinWallet) error
+	SaveTransaction(ctx interface{}, txn *CoinTransaction) error
+	GetTransactions(ctx interface{}, userID string, limit int) ([]*CoinTransaction, error)
+	GetCheckIn(ctx interface{}, userID string) (*DailyCheckIn, error)
+	SaveCheckIn(ctx interface{}, checkIn *DailyCheckIn) error
+	GetActiveMissions(ctx interface{}) ([]*Mission, error)
+	GetUserMission(ctx interface{}, userID, missionID string) (*UserMission, error)
+	SaveUserMission(ctx interface{}, um *UserMission) error
+	GetPrizes(ctx interface{}) ([]*LuckyDrawPrize, error)
+	SaveDrawResult(ctx interface{}, result *LuckyDrawResult) error
 }
-

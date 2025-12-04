@@ -11,7 +11,7 @@ import (
 	"github.com/titan-commerce/backend/payment-service/internal/domain"
 	"github.com/titan-commerce/backend/payment-service/internal/infrastructure/gateway/mock"
 	"github.com/titan-commerce/backend/payment-service/internal/infrastructure/postgres"
-	"github.com/titan-commerce/backend/payment-service/internal/interface/grpc"
+	handler "github.com/titan-commerce/backend/payment-service/internal/interface/grpc"
 	pb "github.com/titan-commerce/backend/payment-service/proto/payment/v1"
 	"github.com/titan-commerce/backend/pkg/config"
 	"github.com/titan-commerce/backend/pkg/logger"
@@ -42,7 +42,7 @@ func main() {
 
 	// Initialize payment gateways
 	mockGateway := mock.NewMockPaymentGateway(log)
-	gateways := map[domain.PaymentGateway]domain.PaymentGateway{
+	gateways := map[domain.PaymentGateway]domain.PaymentGatewayProvider{
 		domain.PaymentGatewayStripe: mockGateway,
 		domain.PaymentGatewayPayPal: mockGateway,
 		domain.PaymentGatewayAdyen:  mockGateway,
@@ -58,7 +58,7 @@ func main() {
 	}
 
 	grpcServer := grpcLib.NewServer()
-	pb.RegisterPaymentServiceServer(grpcServer, grpc.NewPaymentServiceServer(paymentService, log))
+	pb.RegisterPaymentServiceServer(grpcServer, handler.NewPaymentServiceServer(paymentService, log))
 
 	// Start server
 	go func() {

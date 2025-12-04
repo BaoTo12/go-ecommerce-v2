@@ -1,125 +1,182 @@
 package domain
-}
-	ChangedAt time.Time
-	Reason    string
-	Strategy  PricingStrategy
-	Price     int64
-	ProductID string
-type PriceHistory struct {
-// PriceHistory represents historical pricing data
 
-}
-	}
-		UpdatedAt:  now,
-		CreatedAt:  now,
-		Priority:   100,
-		IsActive:   true,
-		Conditions: []PricingCondition{},
-		MaxPrice:   maxPrice,
-		MinPrice:   minPrice,
-		ProductID:  productID,
-		Name:       name,
-		RuleID:     uuid.New().String(),
-	return &DynamicPricingRule{
-	now := time.Now()
-func NewDynamicPricingRule(name, productID string, minPrice, maxPrice int64) *DynamicPricingRule {
-// NewDynamicPricingRule creates a new pricing rule
+import (
+	"time"
 
-}
-	Operator  string // gt, lt, eq
-	Threshold float64
-	Type      string  // inventory_low, demand_high, competitor_lower, time_of_day
-type PricingCondition struct {
-// PricingCondition represents a condition for price adjustment
-
-}
-	UpdatedAt    time.Time
-	CreatedAt    time.Time
-	Priority     int
-	IsActive     bool
-	Conditions   []PricingCondition
-	AdjustmentPct float64
-	MaxPrice     int64
-	MinPrice     int64
-	CategoryID   string
-	ProductID    string
-	Name         string
-	RuleID       string
-type DynamicPricingRule struct {
-// DynamicPricingRule represents business rules for dynamic pricing
-
-}
-	FetchedAt    time.Time
-	URL          string
-	Price        int64
-	CompetitorID string
-	ProductID    string
-type CompetitorPrice struct {
-// CompetitorPrice represents competitor pricing data
-
-}
-	Demand int
-	Price  int64
-type DemandPoint struct {
-// DemandPoint represents a point on the demand curve
-
-}
-	UpdatedAt         time.Time
-	DemandCurve       []DemandPoint
-	OptimalPricePoint int64
-	ElasticityScore   float64 // How demand changes with price
-	ProductID         string
-type PriceElasticity struct {
-// PriceElasticity represents price elasticity for a product
-
-}
-	}
-		CreatedAt:        now,
-		ValidUntil:       now.Add(24 * time.Hour),
-		ValidFrom:        now,
-		Factors:          make(map[string]float64),
-		Confidence:       0.8,
-		Strategy:         strategy,
-		RecommendedPrice: recommendedPrice,
-		CurrentPrice:     currentPrice,
-		ProductID:        productID,
-		RecommendationID: uuid.New().String(),
-	return &PriceRecommendation{
-	now := time.Now()
-func NewPriceRecommendation(productID string, currentPrice, recommendedPrice int64, strategy PricingStrategy) *PriceRecommendation {
-// NewPriceRecommendation creates a new price recommendation
-
-}
-	CreatedAt        time.Time
-	ValidUntil       time.Time
-	ValidFrom        time.Time
-	EstimatedRevenue int64
-	EstimatedDemand  int
-	Factors          map[string]float64 // demand, competition, inventory, etc.
-	Confidence       float64 // 0.0 - 1.0
-	Strategy         PricingStrategy
-	RecommendedPrice int64
-	CurrentPrice     int64 // in cents
-	ProductID        string
-	RecommendationID string
-type PriceRecommendation struct {
-// PriceRecommendation represents an ML-powered price recommendation
-
+	"github.com/google/uuid"
 )
-	StrategyPenetration  PricingStrategy = "PENETRATION"  // Market entry
-	StrategySegmented    PricingStrategy = "SEGMENTED"    // User-segment based
-	StrategyTimeBased    PricingStrategy = "TIME_BASED"   // Flash sales, time-of-day
-	StrategyCompetitive  PricingStrategy = "COMPETITIVE"  // Match competitors
-	StrategyDynamic      PricingStrategy = "DYNAMIC"      // Based on demand/supply
-const (
 
 type PricingStrategy string
-// PricingStrategy represents different pricing algorithms
 
+const (
+	PricingStrategyFixed       PricingStrategy = "FIXED"
+	PricingStrategyDynamic     PricingStrategy = "DYNAMIC"
+	PricingStrategyCompetitive PricingStrategy = "COMPETITIVE"
+	PricingStrategySurge       PricingStrategy = "SURGE"
 )
-	"github.com/google/uuid"
 
-	"time"
-import (
+type ProductPrice struct {
+	ProductID      string
+	BasePrice      float64
+	CurrentPrice   float64
+	MinPrice       float64
+	MaxPrice       float64
+	Strategy       PricingStrategy
+	Demand         DemandMetrics
+	Competition    CompetitorData
+	LastUpdated    time.Time
+}
 
+type DemandMetrics struct {
+	ViewsLast24h        int
+	ViewsLast7d         int
+	PurchasesLast24h    int
+	PurchasesLast7d     int
+	CartAddsLast24h     int
+	ConversionRate      float64
+	InventoryLevel      float64 // 0-1, lower = less stock
+	DemandScore         float64 // 0-100
+}
 
+type CompetitorData struct {
+	LowestPrice    float64
+	AveragePrice   float64
+	HighestPrice   float64
+	CompetitorCount int
+	LastScraped    time.Time
+}
+
+type PriceHistory struct {
+	ID         string
+	ProductID  string
+	OldPrice   float64
+	NewPrice   float64
+	Reason     string
+	Strategy   PricingStrategy
+	CreatedAt  time.Time
+}
+
+type PricingRule struct {
+	ID              string
+	Name            string
+	ProductIDs      []string
+	CategoryIDs     []string
+	Strategy        PricingStrategy
+	Parameters      PricingParameters
+	IsActive        bool
+	Priority        int
+	CreatedAt       time.Time
+}
+
+type PricingParameters struct {
+	// Dynamic pricing
+	DemandMultiplierMin float64 // e.g., 0.9 (10% discount at low demand)
+	DemandMultiplierMax float64 // e.g., 1.3 (30% surge at high demand)
+	
+	// Competitive pricing
+	TargetPosition     string  // "lowest", "average", "premium"
+	PriceMargin        float64 // % below/above competition
+	
+	// Surge pricing
+	SurgeThreshold     float64 // demand score to trigger surge
+	SurgeMultiplier    float64 // max surge multiplier
+	
+	// Time-based
+	TimeOfDayFactor    bool
+	DayOfWeekFactor    bool
+}
+
+func NewProductPrice(productID string, basePrice, minPrice, maxPrice float64) *ProductPrice {
+	return &ProductPrice{
+		ProductID:    productID,
+		BasePrice:    basePrice,
+		CurrentPrice: basePrice,
+		MinPrice:     minPrice,
+		MaxPrice:     maxPrice,
+		Strategy:     PricingStrategyFixed,
+		LastUpdated:  time.Now(),
+	}
+}
+
+func (p *ProductPrice) SetPrice(newPrice float64, reason string) *PriceHistory {
+	// Enforce bounds
+	if newPrice < p.MinPrice {
+		newPrice = p.MinPrice
+	}
+	if newPrice > p.MaxPrice {
+		newPrice = p.MaxPrice
+	}
+
+	history := &PriceHistory{
+		ID:        uuid.New().String(),
+		ProductID: p.ProductID,
+		OldPrice:  p.CurrentPrice,
+		NewPrice:  newPrice,
+		Reason:    reason,
+		Strategy:  p.Strategy,
+		CreatedAt: time.Now(),
+	}
+
+	p.CurrentPrice = newPrice
+	p.LastUpdated = time.Now()
+
+	return history
+}
+
+func (p *ProductPrice) CalculateDynamicPrice(rule *PricingRule) float64 {
+	params := rule.Parameters
+	demand := p.Demand.DemandScore / 100.0 // normalize to 0-1
+
+	// Linear interpolation between min and max multiplier based on demand
+	multiplier := params.DemandMultiplierMin + demand*(params.DemandMultiplierMax-params.DemandMultiplierMin)
+
+	return p.BasePrice * multiplier
+}
+
+func (p *ProductPrice) CalculateCompetitivePrice(rule *PricingRule) float64 {
+	if p.Competition.CompetitorCount == 0 {
+		return p.BasePrice
+	}
+
+	params := rule.Parameters
+	var targetPrice float64
+
+	switch params.TargetPosition {
+	case "lowest":
+		targetPrice = p.Competition.LowestPrice * (1 - params.PriceMargin/100)
+	case "average":
+		targetPrice = p.Competition.AveragePrice * (1 - params.PriceMargin/100)
+	case "premium":
+		targetPrice = p.Competition.HighestPrice * (1 + params.PriceMargin/100)
+	default:
+		targetPrice = p.Competition.AveragePrice
+	}
+
+	return targetPrice
+}
+
+func (p *ProductPrice) CalculateSurgePrice(rule *PricingRule) float64 {
+	params := rule.Parameters
+	
+	if p.Demand.DemandScore < params.SurgeThreshold {
+		return p.CurrentPrice
+	}
+
+	// Calculate surge multiplier based on demand above threshold
+	excessDemand := (p.Demand.DemandScore - params.SurgeThreshold) / (100 - params.SurgeThreshold)
+	surgeMultiplier := 1 + excessDemand*(params.SurgeMultiplier-1)
+
+	return p.BasePrice * surgeMultiplier
+}
+
+type Repository interface {
+	SavePrice(ctx interface{}, price *ProductPrice) error
+	GetPrice(ctx interface{}, productID string) (*ProductPrice, error)
+	UpdatePrice(ctx interface{}, price *ProductPrice) error
+	SaveHistory(ctx interface{}, history *PriceHistory) error
+	GetPriceHistory(ctx interface{}, productID string, limit int) ([]*PriceHistory, error)
+	GetActiveRules(ctx interface{}) ([]*PricingRule, error)
+	SaveRule(ctx interface{}, rule *PricingRule) error
+	UpdateDemandMetrics(ctx interface{}, productID string, metrics *DemandMetrics) error
+	UpdateCompetitorData(ctx interface{}, productID string, data *CompetitorData) error
+}

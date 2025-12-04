@@ -18,6 +18,7 @@ const (
 	ErrForbidden           ErrorCode = "FORBIDDEN"
 	ErrConflict            ErrorCode = "CONFLICT"
 	ErrInsufficientStock   ErrorCode = "INSUFFICIENT_STOCK"
+	ErrInsufficientBalance ErrorCode = "INSUFFICIENT_BALANCE"
 	ErrPaymentFailed       ErrorCode = "PAYMENT_FAILED"
 	ErrOrderNotCancellable ErrorCode = "ORDER_NOT_CANCELLABLE"
 )
@@ -73,7 +74,7 @@ func codeToHTTP(code ErrorCode) int {
 		return http.StatusForbidden
 	case ErrConflict:
 		return http.StatusConflict
-	case ErrInsufficientStock, ErrOrderNotCancellable:
+	case ErrInsufficientStock, ErrInsufficientBalance, ErrOrderNotCancellable:
 		return http.StatusUnprocessableEntity
 	case ErrPaymentFailed:
 		return http.StatusPaymentRequired
@@ -94,7 +95,7 @@ func codeToGRPC(code ErrorCode) codes.Code {
 		return codes.PermissionDenied
 	case ErrConflict:
 		return codes.AlreadyExists
-	case ErrInsufficientStock, ErrOrderNotCancellable:
+	case ErrInsufficientStock, ErrInsufficientBalance, ErrOrderNotCancellable:
 		return codes.FailedPrecondition
 	case ErrPaymentFailed:
 		return codes.Aborted

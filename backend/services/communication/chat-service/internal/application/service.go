@@ -1,259 +1,162 @@
 package application
-}
-	return s.presenceRepo.GetOnlineUsers(ctx, userIDs)
-func (s *ChatService) GetMultipleOnlineStatuses(ctx context.Context, userIDs []string) (map[string]bool, error) {
-// GetMultipleOnlineStatuses retrieves online status for multiple users (Query)
 
-}
-	return s.presenceRepo.GetTypingIndicators(ctx, conversationID)
-func (s *ChatService) GetTypingIndicators(ctx context.Context, conversationID string) ([]*domain.TypingIndicator, error) {
-// GetTypingIndicators retrieves typing indicators for a conversation (Query)
-
-}
-	return s.presenceRepo.GetOnlineStatus(ctx, userID)
-func (s *ChatService) GetOnlineStatus(ctx context.Context, userID string) (*domain.OnlineStatus, error) {
-// GetOnlineStatus retrieves user's online status (Query)
-
-}
-	return s.messageRepo.GetMessagesByConversation(ctx, conversationID, limit, beforeTimestamp)
-
-	}
-		limit = 50 // Default page size
-	if limit <= 0 || limit > 100 {
-) ([]*domain.Message, error) {
-	beforeTimestamp *int64,
-	limit int,
-	conversationID string,
-	ctx context.Context,
-func (s *ChatService) GetMessages(
-// GetMessages retrieves messages from a conversation (Query)
-
-}
-	return conversations, nil
-
-	})
-		return conversations[i].LastMessage.CreatedAt.After(conversations[j].LastMessage.CreatedAt)
-		}
-			return true
-		if conversations[j].LastMessage == nil {
-		}
-			return false
-		if conversations[i].LastMessage == nil {
-	sort.Slice(conversations, func(i, j int) bool {
-	// Sort by last message timestamp (most recent first)
-
-	}
-		return nil, err
-	if err != nil {
-	conversations, err := s.conversationRepo.GetUserConversations(ctx, userID)
-func (s *ChatService) GetUserConversations(ctx context.Context, userID string) ([]*domain.Conversation, error) {
-// GetUserConversations retrieves all conversations for a user (Query)
-
-}
-	return s.conversationRepo.GetConversation(ctx, conversationID)
-func (s *ChatService) GetConversation(ctx context.Context, conversationID string) (*domain.Conversation, error) {
-// GetConversation retrieves a conversation (Query)
-
-}
-	return nil
-	s.logger.Infof("User status updated: user=%s, online=%v", userID, online)
-
-	}
-		return err
-		s.logger.Error(err, "failed to set online status")
-	if err := s.presenceRepo.SetOnlineStatus(ctx, userID, online); err != nil {
-func (s *ChatService) SetUserOnlineStatus(ctx context.Context, userID string, online bool) error {
-// SetUserOnlineStatus sets user's online/offline status (Command)
-
-}
-	return nil
-
-	}
-		return err
-		s.logger.Error(err, "failed to set typing indicator")
-	if err := s.presenceRepo.SetTypingIndicator(ctx, indicator); err != nil {
-
-	indicator := domain.NewTypingIndicator(conversationID, userID, userName, isTyping)
-) error {
-	isTyping bool,
-	conversationID, userID, userName string,
-	ctx context.Context,
-func (s *ChatService) SetTypingIndicator(
-// SetTypingIndicator sets typing indicator for a user in a conversation (Command)
-
-}
-	return nil
-	s.logger.Infof("Messages marked as read: conversation=%s, user=%s", conversationID, userID)
-
-	}
-		return err
-		s.logger.Error(err, "failed to mark messages as read")
-	if err := s.messageRepo.MarkMessagesAsRead(ctx, conversationID, userID); err != nil {
-
-	}
-		return err
-		s.logger.Error(err, "failed to mark conversation as read")
-	if err := s.conversationRepo.UpdateConversation(ctx, conversation); err != nil {
-	conversation.MarkAsRead(userID)
-
-	}
-		return errors.New(errors.ErrUnauthorized, "user is not a participant")
-	if !conversation.IsParticipant(userID) {
-
-	}
-		return err
-	if err != nil {
-	conversation, err := s.conversationRepo.GetConversation(ctx, conversationID)
-func (s *ChatService) MarkMessagesAsRead(ctx context.Context, conversationID, userID string) error {
-// MarkMessagesAsRead marks all messages in a conversation as read (Command)
-
-}
-	return nil
-	s.logger.Infof("Message deleted: id=%s", messageID)
-
-	}
-		return err
-		s.logger.Error(err, "failed to delete message")
-	if err := s.messageRepo.UpdateMessage(ctx, message); err != nil {
-
-	}
-		return err
-	if err := message.Delete(); err != nil {
-
-	}
-		return errors.New(errors.ErrUnauthorized, "only the sender can delete their message")
-	if message.SenderID != userID {
-
-	}
-		return err
-	if err != nil {
-	message, err := s.messageRepo.GetMessage(ctx, messageID)
-func (s *ChatService) DeleteMessage(ctx context.Context, messageID, userID string) error {
-// DeleteMessage soft deletes a message (Command)
-
-}
-	return nil
-	s.logger.Infof("Message edited: id=%s", messageID)
-
-	}
-		return err
-		s.logger.Error(err, "failed to edit message")
-	if err := s.messageRepo.UpdateMessage(ctx, message); err != nil {
-
-	}
-		return err
-	if err := message.Edit(newContent); err != nil {
-
-	}
-		return errors.New(errors.ErrUnauthorized, "only the sender can edit their message")
-	if message.SenderID != userID {
-
-	}
-		return err
-	if err != nil {
-	message, err := s.messageRepo.GetMessage(ctx, messageID)
-func (s *ChatService) EditMessage(ctx context.Context, messageID, userID, newContent string) error {
-// EditMessage edits an existing message (Command)
-
-}
-	return message, nil
-
-		message.MessageID, conversationID, senderID)
-	s.logger.Infof("Message sent: id=%s, conversation=%s, sender=%s",
-
-	s.conversationRepo.UpdateConversation(ctx, conversation)
-	conversation.UpdateLastMessage(message)
-	// Update conversation's last message
-
-	}
-		return nil, err
-		s.logger.Error(err, "failed to create message")
-	if err := s.messageRepo.CreateMessage(ctx, message); err != nil {
-
-	}
-		message.Metadata = metadata
-	if metadata != nil {
-
-	}
-		return nil, err
-	if err != nil {
-	message, err := domain.NewMessage(conversationID, senderID, senderName, messageType, content)
-
-	}
-		return nil, errors.New(errors.ErrUnauthorized, "user is not a participant in this conversation")
-	if !conversation.IsParticipant(senderID) {
-
-	}
-		return nil, err
-	if err != nil {
-	conversation, err := s.conversationRepo.GetConversation(ctx, conversationID)
-	// Verify conversation exists and sender is a participant
-) (*domain.Message, error) {
-	metadata *domain.MessageMetadata,
-	content string,
-	messageType domain.MessageType,
-	conversationID, senderID, senderName string,
-	ctx context.Context,
-func (s *ChatService) SendMessage(
-// SendMessage sends a message in a conversation (Command)
-
-}
-	return conversation, nil
-
-		conversation.ConversationID, len(participantIDs))
-	s.logger.Infof("Conversation created: id=%s, participants=%d",
-
-	}
-		return nil, err
-		s.logger.Error(err, "failed to create conversation")
-	if err := s.conversationRepo.CreateConversation(ctx, conversation); err != nil {
-
-	}
-		return nil, err
-	if err != nil {
-	conversation, err := domain.NewConversation(conversationType, participantIDs)
-
-	}
-		return existingConv, nil
-		s.logger.Infof("Conversation already exists: %s", existingConv.ConversationID)
-	if existingConv != nil {
-	existingConv, _ := s.conversationRepo.FindConversationByParticipants(ctx, participantIDs)
-	// Check if conversation already exists between these participants
-) (*domain.Conversation, error) {
-	participantIDs []string,
-	conversationType domain.ConversationType,
-	ctx context.Context,
-func (s *ChatService) CreateConversation(
-// CreateConversation creates a new conversation (Command)
-
-}
-	}
-		logger:           logger,
-		presenceRepo:     presenceRepo,
-		conversationRepo: conversationRepo,
-		messageRepo:      messageRepo,
-	return &ChatService{
-) *ChatService {
-	logger *logger.Logger,
-	presenceRepo domain.PresenceRepository,
-	conversationRepo domain.ConversationRepository,
-	messageRepo domain.MessageRepository,
-func NewChatService(
-
-}
-	logger           *logger.Logger
-	presenceRepo     domain.PresenceRepository
-	conversationRepo domain.ConversationRepository
-	messageRepo      domain.MessageRepository
-type ChatService struct {
-
-)
-	"github.com/titan-commerce/backend/pkg/logger"
-	"github.com/titan-commerce/backend/pkg/errors"
-	"github.com/titan-commerce/backend/chat-service/internal/domain"
-
-	"sort"
-	"context"
 import (
+	"context"
+	"sync"
 
+	"github.com/titan-commerce/backend/chat-service/internal/domain"
+	"github.com/titan-commerce/backend/pkg/logger"
+)
 
+type ChatRepository interface {
+	SaveMessage(ctx context.Context, message *domain.Message) error
+	FindMessagesByConversation(ctx context.Context, conversationID string, limit, offset int) ([]*domain.Message, error)
+	SaveConversation(ctx context.Context, conversation *domain.Conversation) error
+	FindConversationByID(ctx context.Context, conversationID string) (*domain.Conversation, error)
+	FindConversationsByUser(ctx context.Context, userID string) ([]*domain.Conversation, error)
+	FindDirectConversation(ctx context.Context, user1ID, user2ID string) (*domain.Conversation, error)
+	UpdateConversation(ctx context.Context, conversation *domain.Conversation) error
+}
+
+// WebSocket connection manager
+type ConnectionManager struct {
+	connections map[string]map[string]chan *domain.Message // userID -> connectionID -> channel
+	mu          sync.RWMutex
+}
+
+func NewConnectionManager() *ConnectionManager {
+	return &ConnectionManager{
+		connections: make(map[string]map[string]chan *domain.Message),
+	}
+}
+
+func (cm *ConnectionManager) AddConnection(userID, connID string, ch chan *domain.Message) {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	if cm.connections[userID] == nil {
+		cm.connections[userID] = make(map[string]chan *domain.Message)
+	}
+	cm.connections[userID][connID] = ch
+}
+
+func (cm *ConnectionManager) RemoveConnection(userID, connID string) {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	if conns, ok := cm.connections[userID]; ok {
+		if ch, ok := conns[connID]; ok {
+			close(ch)
+			delete(conns, connID)
+		}
+		if len(conns) == 0 {
+			delete(cm.connections, userID)
+		}
+	}
+}
+
+func (cm *ConnectionManager) SendToUser(userID string, msg *domain.Message) {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+	if conns, ok := cm.connections[userID]; ok {
+		for _, ch := range conns {
+			select {
+			case ch <- msg:
+			default:
+				// Channel full, skip
+			}
+		}
+	}
+}
+
+type ChatService struct {
+	repo       ChatRepository
+	connMgr    *ConnectionManager
+	logger     *logger.Logger
+}
+
+func NewChatService(repo ChatRepository, logger *logger.Logger) *ChatService {
+	return &ChatService{
+		repo:    repo,
+		connMgr: NewConnectionManager(),
+		logger:  logger,
+	}
+}
+
+func (s *ChatService) GetConnectionManager() *ConnectionManager {
+	return s.connMgr
+}
+
+// SendMessage sends a message to a conversation
+func (s *ChatService) SendMessage(ctx context.Context, conversationID, senderID, content string, msgType domain.MessageType) (*domain.Message, error) {
+	// Verify conversation exists
+	conv, err := s.repo.FindConversationByID(ctx, conversationID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create message
+	message := domain.NewMessage(conversationID, senderID, content, msgType)
+	
+	if err := s.repo.SaveMessage(ctx, message); err != nil {
+		s.logger.Error(err, "failed to save message")
+		return nil, err
+	}
+
+	// Update last message
+	conv.LastMessage = message
+	s.repo.UpdateConversation(ctx, conv)
+
+	// Broadcast to all participants
+	for _, userID := range conv.Participants {
+		if userID != senderID {
+			s.connMgr.SendToUser(userID, message)
+		}
+	}
+
+	s.logger.Infof("Message sent: %s in conversation %s", message.ID, conversationID)
+	return message, nil
+}
+
+// GetMessages retrieves messages in a conversation
+func (s *ChatService) GetMessages(ctx context.Context, conversationID string, limit, offset int) ([]*domain.Message, error) {
+	return s.repo.FindMessagesByConversation(ctx, conversationID, limit, offset)
+}
+
+// GetOrCreateDirectConversation gets or creates a direct conversation between two users
+func (s *ChatService) GetOrCreateDirectConversation(ctx context.Context, user1ID, user2ID string) (*domain.Conversation, error) {
+	conv, err := s.repo.FindDirectConversation(ctx, user1ID, user2ID)
+	if err == nil {
+		return conv, nil
+	}
+
+	// Create new conversation
+	conv = domain.NewDirectConversation(user1ID, user2ID)
+	if err := s.repo.SaveConversation(ctx, conv); err != nil {
+		return nil, err
+	}
+
+	s.logger.Infof("Created direct conversation: %s", conv.ID)
+	return conv, nil
+}
+
+// CreateGroupConversation creates a new group conversation
+func (s *ChatService) CreateGroupConversation(ctx context.Context, name string, participants []string) (*domain.Conversation, error) {
+	conv := domain.NewGroupConversation(name, participants)
+	if err := s.repo.SaveConversation(ctx, conv); err != nil {
+		return nil, err
+	}
+
+	s.logger.Infof("Created group conversation: %s with %d participants", conv.ID, len(participants))
+	return conv, nil
+}
+
+// GetConversations retrieves all conversations for a user
+func (s *ChatService) GetConversations(ctx context.Context, userID string) ([]*domain.Conversation, error) {
+	return s.repo.FindConversationsByUser(ctx, userID)
+}
+
+// MarkAsRead marks a message as read
+func (s *ChatService) MarkAsRead(ctx context.Context, conversationID, userID string) error {
+	// In production, update read status in database
+	s.logger.Infof("Marked conversation %s as read by %s", conversationID, userID)
+	return nil
+}

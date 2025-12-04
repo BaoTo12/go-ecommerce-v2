@@ -2,7 +2,6 @@ package mock
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"time"
 

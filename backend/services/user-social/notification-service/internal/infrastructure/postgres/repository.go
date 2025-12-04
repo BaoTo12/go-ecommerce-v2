@@ -54,20 +54,41 @@ func (r *NotificationRepository) Save(ctx context.Context, notification *domain.
 	return nil
 }
 
-func (r *NotificationRepository) FindByUserID(ctx context.Context, userID string, page, pageSize int) ([]*domain.Notification, int, error) {
-	offset := (page - 1) * pageSize
+func (r *NotificationRepository) FindByID(ctx context.Context, notificationID string) (*domain.Notification, error) {
+	query := `
+		SELECT id, user_id, type, channel, title, content, read, created_at, sent_at
+		FROM notifications
+		WHERE id = $1
+	`
 
+	var n domain.Notification
+	err := r.db.QueryRowContext(ctx, query, notificationID).Scan(
+		&n.ID, &n.UserID, &n.Type, &n.Channel, &n.Title, &n.Content,
+		&n.Read, &n.CreatedAt, &n.SentAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, errors.New(errors.ErrNotFound, "notification not found")
+	}
+	if err != nil {
+		return nil, errors.Wrap(errors.ErrInternal, "failed to find notification", err)
+	}
+
+	return &n, nil
+}
+
+func (r *NotificationRepository) FindByUserID(ctx context.Context, userID string, pageSize int) ([]*domain.Notification, error) {
 	query := `
 		SELECT id, user_id, type, channel, title, content, read, created_at, sent_at
 		FROM notifications
 		WHERE user_id = $1
 		ORDER BY created_at DESC
-		LIMIT $2 OFFSET $3
+		LIMIT $2
 	`
 
-	rows, err := r.db.QueryContext(ctx, query, userID, pageSize, offset)
+	rows, err := r.db.QueryContext(ctx, query, userID, pageSize)
 	if err != nil {
-		return nil, 0, errors.Wrap(errors.ErrInternal, "failed to find notifications", err)
+		return nil, errors.Wrap(errors.ErrInternal, "failed to find notifications", err)
 	}
 	defer rows.Close()
 
@@ -79,20 +100,21 @@ func (r *NotificationRepository) FindByUserID(ctx context.Context, userID string
 			&n.Read, &n.CreatedAt, &n.SentAt,
 		)
 		if err != nil {
-			return nil, 0, errors.Wrap(errors.ErrInternal, "failed to scan notification", err)
+			return nil, errors.Wrap(errors.ErrInternal, "failed to scan notification", err)
 		}
 		notifications = append(notifications, &n)
 	}
 
-	// Get total count
-	var total int
-	countQuery := `SELECT COUNT(*) FROM notifications WHERE user_id = $1`
-	err = r.db.QueryRowContext(ctx, countQuery, userID).Scan(&total)
-	if err != nil {
-		return nil, 0, errors.Wrap(errors.ErrInternal, "failed to count notifications", err)
-	}
+	return notifications, nil
+}
 
-	return notifications, total, nil
+func (r *NotificationRepository) Update(ctx context.Context, notification *domain.Notification) error {
+	query := `UPDATE notifications SET read = $1 WHERE id = $2`
+	_, err := r.db.ExecContext(ctx, query, notification.Read, notification.ID)
+	if err != nil {
+		return errors.Wrap(errors.ErrInternal, "failed to update notification", err)
+	}
+	return nil
 }
 
 func (r *NotificationRepository) MarkAsRead(ctx context.Context, notificationID string) error {

@@ -10,11 +10,11 @@ import (
 
 type PaymentService struct {
 	repo     domain.Repository
-	gateways map[domain.PaymentGateway]domain.PaymentGateway
+	gateways map[domain.PaymentGateway]domain.PaymentGatewayProvider
 	logger   *logger.Logger
 }
 
-func NewPaymentService(repo domain.Repository, gateways map[domain.PaymentGateway]domain.PaymentGateway, logger *logger.Logger) *PaymentService {
+func NewPaymentService(repo domain.Repository, gateways map[domain.PaymentGateway]domain.PaymentGatewayProvider, logger *logger.Logger) *PaymentService {
 	return &PaymentService{
 		repo:     repo,
 		gateways: gateways,

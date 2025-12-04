@@ -34,6 +34,27 @@ func NewEventStoreRepository(databaseURL string, logger *logger.Logger) (*EventS
 	return &EventStoreRepository{db: db, logger: logger}, nil
 }
 
+// SaveEvent saves a single event
+func (r *EventStoreRepository) SaveEvent(ctx context.Context, event *domain.OrderEvent) error {
+	eventData, err := json.Marshal(event)
+	if err != nil {
+		return errors.Wrap(errors.ErrInternal, "failed to marshal event", err)
+	}
+
+	query := `
+		INSERT INTO events (aggregate_id, aggregate_type, event_type, event_data, version, occurred_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`
+
+	_, err = r.db.ExecContext(ctx, query,
+		event.AggregateID, "Order", event.Type, eventData, event.Version, event.Timestamp)
+	if err != nil {
+		return errors.Wrap(errors.ErrInternal, "failed to save event", err)
+	}
+
+	return nil
+}
+
 // SaveEvents appends events to the event stream
 func (r *EventStoreRepository) SaveEvents(ctx context.Context, aggregateID string, events []domain.DomainEvent, expectedVersion int) error {
 	tx, err := r.db.BeginTx(ctx, nil)
@@ -150,6 +171,16 @@ func NewOrderReadModelRepository(databaseURL string, logger *logger.Logger) (*Or
 	return &OrderReadModelRepository{db: db, logger: logger}, nil
 }
 
+// Save saves an order to the read model
+func (r *OrderReadModelRepository) Save(ctx context.Context, order *domain.Order) error {
+	return r.SaveReadModel(ctx, order)
+}
+
+// Update updates an order in the read model
+func (r *OrderReadModelRepository) Update(ctx context.Context, order *domain.Order) error {
+	return r.SaveReadModel(ctx, order)
+}
+
 // SaveReadModel updates denormalized read model
 func (r *OrderReadModelRepository) SaveReadModel(ctx context.Context, order *domain.Order) error {
 	itemsJSON, err := json.Marshal(order.Items)
@@ -203,4 +234,40 @@ func (r *OrderReadModelRepository) FindByID(ctx context.Context, orderID string)
 	}
 
 	return &order, nil
+}
+
+// FindByUserID retrieves orders for a user
+func (r *OrderReadModelRepository) FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*domain.Order, error) {
+	query := `
+		SELECT order_id, user_id, status, total_amount, items, created_at, updated_at
+		FROM orders_read_model
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, userID, limit, offset)
+	if err != nil {
+		return nil, errors.Wrap(errors.ErrInternal, "failed to query orders", err)
+	}
+	defer rows.Close()
+
+	var orders []*domain.Order
+	for rows.Next() {
+		var order domain.Order
+		var itemsJSON []byte
+
+		if err := rows.Scan(&order.ID, &order.UserID, &order.Status, &order.TotalAmount,
+			&itemsJSON, &order.CreatedAt, &order.UpdatedAt); err != nil {
+			return nil, errors.Wrap(errors.ErrInternal, "failed to scan order", err)
+		}
+
+		if err := json.Unmarshal(itemsJSON, &order.Items); err != nil {
+			return nil, errors.Wrap(errors.ErrInternal, "failed to unmarshal items", err)
+		}
+
+		orders = append(orders, &order)
+	}
+
+	return orders, nil
 }

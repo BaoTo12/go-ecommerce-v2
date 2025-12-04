@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/titan-commerce/backend/wallet-service/internal/domain"
-	"github.com/titan-commerce/backend/pkg/errors"
 	"github.com/titan-commerce/backend/pkg/logger"
 )
 

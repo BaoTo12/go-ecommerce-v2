@@ -103,6 +103,30 @@ func (r *PaymentRepository) FindByIdempotencyKey(ctx context.Context, idempotenc
 	return &payment, nil
 }
 
+func (r *PaymentRepository) FindByOrderID(ctx context.Context, orderID string) (*domain.Payment, error) {
+	query := `
+		SELECT id, order_id, user_id, amount, currency, gateway, status,
+			   gateway_transaction_id, idempotency_key, created_at, updated_at, version
+		FROM payments WHERE order_id = $1
+	`
+
+	var payment domain.Payment
+	err := r.db.QueryRowContext(ctx, query, orderID).Scan(
+		&payment.ID, &payment.OrderID, &payment.UserID, &payment.Amount, &payment.Currency,
+		&payment.Gateway, &payment.Status, &payment.GatewayTransactionID, &payment.IdempotencyKey,
+		&payment.CreatedAt, &payment.UpdatedAt, &payment.Version,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, errors.New(errors.ErrNotFound, "payment not found")
+	}
+	if err != nil {
+		return nil, errors.Wrap(errors.ErrInternal, "failed to find payment", err)
+	}
+
+	return &payment, nil
+}
+
 func (r *PaymentRepository) Update(ctx context.Context, payment *domain.Payment) error {
 	query := `
 		UPDATE payments

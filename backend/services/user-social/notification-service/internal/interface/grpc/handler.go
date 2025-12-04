@@ -25,13 +25,16 @@ func NewNotificationServiceServer(service *application.NotificationService, logg
 }
 
 func (s *NotificationServiceServer) SendNotification(ctx context.Context, req *pb.SendNotificationRequest) (*pb.SendNotificationResponse, error) {
-	notification, err := s.service.SendNotification(
+	// Convert single channel to slice for service
+	channels := []domain.NotificationChannel{domain.NotificationChannel(req.Channel)}
+
+	notificationID, err := s.service.SendNotification(
 		ctx,
 		req.UserId,
 		domain.NotificationType(req.Type),
-		domain.NotificationChannel(req.Channel),
 		req.Title,
 		req.Content,
+		channels,
 	)
 	if err != nil {
 		s.logger.Error(err, "failed to send notification")
@@ -39,13 +42,13 @@ func (s *NotificationServiceServer) SendNotification(ctx context.Context, req *p
 	}
 
 	return &pb.SendNotificationResponse{
-		NotificationId: notification.ID,
+		NotificationId: notificationID,
 		Success:        true,
 	}, nil
 }
 
 func (s *NotificationServiceServer) GetNotifications(ctx context.Context, req *pb.GetNotificationsRequest) (*pb.GetNotificationsResponse, error) {
-	notifications, total, err := s.service.GetNotifications(ctx, req.UserId, int(req.Page), int(req.PageSize))
+	notifications, err := s.service.GetNotifications(ctx, req.UserId, int(req.PageSize))
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -57,7 +60,7 @@ func (s *NotificationServiceServer) GetNotifications(ctx context.Context, req *p
 
 	return &pb.GetNotificationsResponse{
 		Notifications: protoNotifications,
-		Total:         int32(total),
+		Total:         int32(len(notifications)),
 	}, nil
 }
 
@@ -77,6 +80,6 @@ func domainToProto(n *domain.Notification) *pb.Notification {
 		Title:     n.Title,
 		Content:   n.Content,
 		Read:      n.Read,
-		CreatedAt: n.CreatedAt.String(), // Simplified timestamp
+		CreatedAt: n.CreatedAt.String(),
 	}
 }

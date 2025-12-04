@@ -9,7 +9,6 @@ import (
 	"github.com/titan-commerce/backend/pkg/logger"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type FeedServiceServer struct {
@@ -58,7 +57,7 @@ func (s *FeedServiceServer) GetFeed(ctx context.Context, req *pb.GetFeedRequest)
 
 	return &pb.GetFeedResponse{
 		Items:      items,
-		NextCursor: "", // Pagination cursor logic omitted for MVP
+		NextCursor: "",
 	}, nil
 }
 
@@ -71,6 +70,6 @@ func domainToProto(p *domain.Post) *pb.FeedItem {
 		LikesCount:    int32(p.LikesCount),
 		CommentsCount: int32(p.CommentsCount),
 		Tags:          p.Tags,
-		CreatedAt:     timestamppb.New(p.CreatedAt),
+		CreatedAt:     pb.New(p.CreatedAt),
 	}
 }

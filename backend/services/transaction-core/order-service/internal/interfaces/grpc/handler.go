@@ -34,11 +34,11 @@ func (s *OrderServiceServer) CreateOrder(ctx context.Context, req *pb.CreateOrde
 			ProductID:   item.ProductId,
 			ProductName: item.ProductName,
 			Quantity:    int(item.Quantity),
-			Price:       item.Price,
+			UnitPrice:   item.Price,
 		}
 	}
 
-	order, err := s.service.CreateOrder(ctx, req.UserId, items, req.ShippingAddress, req.PaymentMethodId)
+	order, err := s.service.CreateOrder(ctx, req.UserId, items, req.ShippingAddress)
 	if err != nil {
 		s.logger.Error(err, "failed to create order")
 		return nil, status.Error(codes.Internal, err.Error())
@@ -61,15 +61,19 @@ func (s *OrderServiceServer) GetOrder(ctx context.Context, req *pb.GetOrderReque
 }
 
 func (s *OrderServiceServer) ListOrders(ctx context.Context, req *pb.ListOrdersRequest) (*pb.ListOrdersResponse, error) {
-	// Implementation would go here
 	return &pb.ListOrdersResponse{}, nil
 }
 
 func (s *OrderServiceServer) CancelOrder(ctx context.Context, req *pb.CancelOrderRequest) (*pb.CancelOrderResponse, error) {
-	if err := s.service.CancelOrder(ctx, req.OrderId, req.Reason); err != nil {
+	_, err := s.service.CancelOrder(ctx, req.OrderId, req.Reason)
+	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	return &pb.CancelOrderResponse{Success: true}, nil
+}
+
+func (s *OrderServiceServer) UpdateOrderStatus(ctx context.Context, req *pb.UpdateOrderStatusRequest) (*pb.UpdateOrderStatusResponse, error) {
+	return &pb.UpdateOrderStatusResponse{}, nil
 }
 
 func domainToProto(order *domain.Order) *pb.Order {
@@ -79,7 +83,7 @@ func domainToProto(order *domain.Order) *pb.Order {
 			ProductId:   item.ProductID,
 			ProductName: item.ProductName,
 			Quantity:    int32(item.Quantity),
-			Price:       item.Price,
+			Price:       item.UnitPrice,
 		}
 	}
 
@@ -90,6 +94,6 @@ func domainToProto(order *domain.Order) *pb.Order {
 		TotalAmount:     order.TotalAmount,
 		Status:          string(order.Status),
 		ShippingAddress: order.ShippingAddress,
-		CreatedAt:       nil, // timestamp conversion omitted for brevity
+		CreatedAt:       nil,
 	}
 }

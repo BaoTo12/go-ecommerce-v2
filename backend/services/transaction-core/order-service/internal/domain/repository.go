@@ -13,5 +13,4 @@ type Repository interface {
 // EventStore defines the interface for event sourcing
 type EventStore interface {
 	SaveEvent(ctx context.Context, event *OrderEvent) error
-	LoadEvents(ctx context.Context, aggregateID string) ([]*OrderEvent, error)
 }
