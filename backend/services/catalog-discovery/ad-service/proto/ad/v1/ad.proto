@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package ad.v1;
+
+option go_package = "github.com/titan-commerce/backend/ad-service/proto/ad/v1;adv1";
+
+import "google/protobuf/timestamp.proto";
+
+service AdService {
+  rpc CreateCampaign(CreateCampaignRequest) returns (CreateCampaignResponse);
+  rpc GetAds(GetAdsRequest) returns (GetAdsResponse);
+  rpc TrackAdEvent(TrackAdEventRequest) returns (TrackAdEventResponse);
+}
+
+message CreateCampaignRequest {
+  string seller_id = 1;
+  string product_id = 2;
+  double budget = 3;
+  double bid_amount = 4;
+  google.protobuf.Timestamp start_time = 5;
+  google.protobuf.Timestamp end_time = 6;
+}
+
+message CreateCampaignResponse {
+  Campaign campaign = 1;
+}
+
+message GetAdsRequest {
+  string context = 1; // "search", "category", "feed"
+  int32 limit = 2;
+  repeated string keywords = 3;
+}
+
+message GetAdsResponse {
+  repeated Ad ads = 1;
+}
+
+message TrackAdEventRequest {
+  string ad_id = 1;
+  string user_id = 2;
+  string event_type = 3; // "impression", "click"
+}
+
+message TrackAdEventResponse {
+  bool success = 1;
+}
+
+message Campaign {
+  string id = 1;
+  string seller_id = 2;
+  string product_id = 3;
+  double budget = 4;
+  double remaining_budget = 5;
+  string status = 6; // "active", "paused", "completed"
+}
+
+message Ad {
+  string id = 1;
+  string product_id = 2;
+  string title = 3;
+  string image_url = 4;
+  double price = 5;
+  string tracking_token = 6;
+}

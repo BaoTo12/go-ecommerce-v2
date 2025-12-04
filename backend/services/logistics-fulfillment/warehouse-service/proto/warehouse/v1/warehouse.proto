@@ -1,0 +1,176 @@
+syntax = "proto3";
+
+package warehouse.v1;
+
+option go_package = "github.com/titan-commerce/backend/warehouse-service/proto/warehouse/v1;warehousev1";
+
+import "google/protobuf/timestamp.proto";
+
+service WarehouseService {
+  rpc CreateWarehouse(CreateWarehouseRequest) returns (CreateWarehouseResponse);
+  rpc GetWarehouse(GetWarehouseRequest) returns (GetWarehouseResponse);
+  rpc ListWarehouses(ListWarehousesRequest) returns (ListWarehousesResponse);
+  rpc UpdateWarehouse(UpdateWarehouseRequest) returns (UpdateWarehouseResponse);
+  rpc AllocateStock(AllocateStockRequest) returns (AllocateStockResponse);
+  rpc GetStockByWarehouse(GetStockByWarehouseRequest) returns (GetStockByWarehouseResponse);
+  rpc TransferStock(TransferStockRequest) returns (TransferStockResponse);
+  rpc RecordStockMovement(RecordStockMovementRequest) returns (RecordStockMovementResponse);
+}
+
+enum WarehouseStatus {
+  WAREHOUSE_STATUS_UNSPECIFIED = 0;
+  WAREHOUSE_STATUS_ACTIVE = 1;
+  WAREHOUSE_STATUS_INACTIVE = 2;
+  WAREHOUSE_STATUS_MAINTENANCE = 3;
+}
+
+enum StockMovementType {
+  STOCK_MOVEMENT_TYPE_UNSPECIFIED = 0;
+  STOCK_MOVEMENT_TYPE_INBOUND = 1;
+  STOCK_MOVEMENT_TYPE_OUTBOUND = 2;
+  STOCK_MOVEMENT_TYPE_TRANSFER = 3;
+  STOCK_MOVEMENT_TYPE_ADJUSTMENT = 4;
+  STOCK_MOVEMENT_TYPE_RETURN = 5;
+}
+
+message Address {
+  string street = 1;
+  string city = 2;
+  string state = 3;
+  string postal_code = 4;
+  string country = 5;
+  double latitude = 6;
+  double longitude = 7;
+}
+
+message Warehouse {
+  string warehouse_id = 1;
+  string name = 2;
+  string code = 3;
+  Address address = 4;
+  WarehouseStatus status = 5;
+  int32 capacity = 6;
+  int32 priority = 7; // Lower number = higher priority for allocation
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message WarehouseStock {
+  string warehouse_id = 1;
+  string product_id = 2;
+  int32 available_quantity = 3;
+  int32 reserved_quantity = 4;
+  int32 total_quantity = 5;
+  string zone = 6; // Storage zone within warehouse
+  string bin_location = 7; // Specific bin/shelf location
+  google.protobuf.Timestamp last_updated = 8;
+}
+
+message StockMovement {
+  string movement_id = 1;
+  string warehouse_id = 2;
+  string product_id = 3;
+  StockMovementType movement_type = 4;
+  int32 quantity = 5;
+  string reference_id = 6; // Order ID, Transfer ID, etc.
+  string notes = 7;
+  google.protobuf.Timestamp created_at = 8;
+  string created_by = 9;
+}
+
+message CreateWarehouseRequest {
+  string name = 1;
+  string code = 2;
+  Address address = 3;
+  int32 capacity = 4;
+  int32 priority = 5;
+}
+
+message CreateWarehouseResponse {
+  Warehouse warehouse = 1;
+}
+
+message GetWarehouseRequest {
+  string warehouse_id = 1;
+}
+
+message GetWarehouseResponse {
+  Warehouse warehouse = 1;
+}
+
+message ListWarehousesRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  WarehouseStatus status = 3;
+}
+
+message ListWarehousesResponse {
+  repeated Warehouse warehouses = 1;
+  int32 total = 2;
+}
+
+message UpdateWarehouseRequest {
+  string warehouse_id = 1;
+  string name = 2;
+  WarehouseStatus status = 3;
+  int32 capacity = 4;
+  int32 priority = 5;
+}
+
+message UpdateWarehouseResponse {
+  Warehouse warehouse = 1;
+}
+
+message StockAllocationItem {
+  string warehouse_id = 1;
+  int32 quantity = 2;
+}
+
+message AllocateStockRequest {
+  string product_id = 1;
+  int32 required_quantity = 2;
+  string customer_address = 3; // For proximity-based allocation
+  repeated string preferred_warehouse_ids = 4;
+}
+
+message AllocateStockResponse {
+  bool success = 1;
+  repeated StockAllocationItem allocations = 2;
+  string error_message = 3;
+}
+
+message GetStockByWarehouseRequest {
+  string warehouse_id = 1;
+  string product_id = 2; // Optional: filter by product
+}
+
+message GetStockByWarehouseResponse {
+  repeated WarehouseStock stocks = 1;
+}
+
+message TransferStockRequest {
+  string from_warehouse_id = 1;
+  string to_warehouse_id = 2;
+  string product_id = 3;
+  int32 quantity = 4;
+  string notes = 5;
+}
+
+message TransferStockResponse {
+  string transfer_id = 1;
+  bool success = 2;
+}
+
+message RecordStockMovementRequest {
+  string warehouse_id = 1;
+  string product_id = 2;
+  StockMovementType movement_type = 3;
+  int32 quantity = 4;
+  string reference_id = 5;
+  string notes = 6;
+}
+
+message RecordStockMovementResponse {
+  StockMovement movement = 1;
+}
+
