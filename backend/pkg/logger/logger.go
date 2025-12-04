@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"io"
 	"os"
 	"time"
 
@@ -25,7 +26,7 @@ func New(cfg Config) *Logger {
 	}
 	zerolog.SetGlobalLevel(level)
 
-	var output = os.Stdout
+	var output io.Writer = os.Stdout
 	if cfg.Pretty {
 		output = zerolog.ConsoleWriter{
 			Out:        os.Stdout,

@@ -25,15 +25,13 @@ func NewProductServiceServer(service *application.ProductService, logger *logger
 }
 
 func (s *ProductServiceServer) CreateProduct(ctx context.Context, req *pb.CreateProductRequest) (*pb.CreateProductResponse, error) {
-	product := &domain.Product{
-		Name:        req.Name,
-		Description: req.Description,
-		Price:       req.Price,
-		Currency:    req.Currency,
-		CategoryID:  req.CategoryId,
-		Images:      req.Images,
-		Attributes:  req.Attributes,
-		Stock:       int(req.Stock),
+	product, err := domain.NewProduct(
+		req.Name, req.Description, req.CategoryId, req.Currency,
+		req.Price, int(req.Stock), req.Images, req.Attributes,
+	)
+	if err != nil {
+		s.logger.Error(err, "failed to create product domain")
+		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	created, err := s.service.CreateProduct(ctx, product)

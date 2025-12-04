@@ -9,10 +9,9 @@ CREATE TABLE IF NOT EXISTS products (
     category_id VARCHAR(36),
     images JSONB,
     attributes JSONB,
-    stock INTEGER DEFAULT 0,
+    stock INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_products_category_id ON products(category_id);
-CREATE INDEX idx_products_name ON products(name);

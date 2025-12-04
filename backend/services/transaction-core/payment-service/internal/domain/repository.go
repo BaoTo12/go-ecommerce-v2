@@ -11,8 +11,8 @@ type Repository interface {
 	Update(ctx context.Context, payment *Payment) error
 }
 
-// PaymentGateway defines the interface for payment gateway integrations
-type PaymentGateway interface {
+// PaymentGatewayProvider defines the interface for payment gateway integrations
+type PaymentGatewayProvider interface {
 	ProcessPayment(ctx context.Context, payment *Payment, paymentMethodID string) (gatewayTransactionID string, clientSecret string, err error)
 	RefundPayment(ctx context.Context, gatewayTransactionID string, amount float64) (refundID string, err error)
 	VerifyPayment(ctx context.Context, gatewayTransactionID string) (verified bool, err error)

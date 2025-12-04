@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -40,7 +39,7 @@ func (r *GamificationRepository) GetUserPoints(ctx context.Context, userID strin
 
 	var points domain.UserPoints
 	err := r.db.QueryRowContext(ctx, query, userID).Scan(
-		&points.UserID, &points.TotalPoints, &points.AvailablePoints, 
+		&points.UserID, &points.TotalPoints, &points.AvailablePoints,
 		&points.LifetimeEarned, &points.LifetimeSpent, &points.Level, &points.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
