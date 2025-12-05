@@ -1,296 +1,273 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { gamificationApi } from '../../lib/api';
-import { useGamificationStore } from '../../lib/store';
+import React, { useState, useEffect, useRef } from 'react';
 
-const PRIZES = [
-    { id: '1', name: '100 Coins', type: 'coins', value: 100, color: '#FFD700', icon: '🪙' },
-    { id: '2', name: '500 Coins', type: 'coins', value: 500, color: '#FFA500', icon: '💰' },
-    { id: '3', name: '1000 Coins', type: 'coins', value: 1000, color: '#FF4500', icon: '🏆' },
-    { id: '4', name: 'Try Again', type: 'nothing', value: 0, color: '#808080', icon: '😢' },
-    { id: '5', name: '50 Coins', type: 'coins', value: 50, color: '#98FB98', icon: '🌟' },
-    { id: '6', name: '200 Coins', type: 'coins', value: 200, color: '#87CEEB', icon: '💎' },
-    { id: '7', name: 'Voucher $5', type: 'voucher', value: 5, color: '#DDA0DD', icon: '🎟️' },
-    { id: '8', name: 'Mystery Box', type: 'mystery', value: 0, color: '#FF69B4', icon: '🎁' },
+interface Prize {
+    id: string;
+    name: string;
+    value: number;
+    type: string;
+    color: string;
+}
+
+interface Mission {
+    id: string;
+    name: string;
+    description: string;
+    target: number;
+    reward: number;
+    icon: string;
+}
+
+const PRIZES: Prize[] = [
+    { id: '1', name: '100 Xu', value: 100, type: 'coins', color: '#FFD700' },
+    { id: '2', name: '50 Xu', value: 50, type: 'coins', color: '#FFA500' },
+    { id: '3', name: '200 Xu', value: 200, type: 'coins', color: '#FF6B6B' },
+    { id: '4', name: 'Thử lại', value: 0, type: 'nothing', color: '#CCCCCC' },
+    { id: '5', name: '500 Xu', value: 500, type: 'coins', color: '#4ECDC4' },
+    { id: '6', name: '20 Xu', value: 20, type: 'coins', color: '#95E1D3' },
+    { id: '7', name: 'Voucher 10K', value: 10000, type: 'voucher', color: '#F38181' },
+    { id: '8', name: '1000 Xu', value: 1000, type: 'coins', color: '#AA96DA' },
 ];
 
 export default function GamificationPage() {
-    const { balance, streak, setBalance, addCoins, setStreak, setLastCheckIn } = useGamificationStore();
+    const [balance, setBalance] = useState(1250);
     const [spinning, setSpinning] = useState(false);
     const [rotation, setRotation] = useState(0);
-    const [result, setResult] = useState<typeof PRIZES[0] | null>(null);
-    const [checkingIn, setCheckingIn] = useState(false);
-    const [missions, setMissions] = useState<any[]>([]);
-    const [userMissions, setUserMissions] = useState<any[]>([]);
+    const [result, setResult] = useState<Prize | null>(null);
+    const [streak, setStreak] = useState(5);
+    const [checkedIn, setCheckedIn] = useState(false);
     const wheelRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        loadData();
-    }, []);
+    const missions: Mission[] = [
+        { id: 'm1', name: 'Mua hàng đầu tiên', description: 'Hoàn thành đơn hàng đầu tiên', target: 1, reward: 100, icon: '🛒' },
+        { id: 'm2', name: 'Đánh giá sản phẩm', description: 'Viết 3 đánh giá sản phẩm', target: 3, reward: 150, icon: '⭐' },
+        { id: 'm3', name: 'Mời bạn bè', description: 'Mời 2 bạn tham gia Shopee', target: 2, reward: 500, icon: '👥' },
+        { id: 'm4', name: 'Xem Shopee Live', description: 'Xem 5 phút livestream', target: 5, reward: 50, icon: '📺' },
+    ];
 
-    const loadData = async () => {
-        try {
-            const walletData = await gamificationApi.getBalance('user-123');
-            setBalance(walletData.balance);
+    const [missionProgress] = useState<Record<string, number>>({
+        m1: 1,
+        m2: 2,
+        m3: 0,
+        m4: 5,
+    });
 
-            const missionData = await gamificationApi.getMissions('user-123');
-            setMissions(missionData.missions || []);
-            setUserMissions(missionData.user_progress || []);
-        } catch {
-            // Use mock data
-            setMissions([
-                { id: 'm1', name: 'First Purchase', description: 'Complete your first order', target: 1, reward: 100 },
-                { id: 'm2', name: 'Review Products', description: 'Write 3 product reviews', target: 3, reward: 150 },
-                { id: 'm3', name: 'Invite Friends', description: 'Invite 2 friends to join', target: 2, reward: 500 },
-            ]);
-            setUserMissions([
-                { mission_id: 'm1', progress: 1, completed: true, claimed_at: null },
-                { mission_id: 'm2', progress: 2, completed: false },
-                { mission_id: 'm3', progress: 0, completed: false },
-            ]);
-        }
-    };
-
-    const handleSpin = async () => {
+    const handleSpin = () => {
         if (spinning || balance < 50) return;
 
         setSpinning(true);
         setResult(null);
+        setBalance(prev => prev - 50);
 
-        // Calculate random prize and rotation
         const prizeIndex = Math.floor(Math.random() * PRIZES.length);
         const segmentAngle = 360 / PRIZES.length;
         const targetRotation = 360 * 5 + (360 - prizeIndex * segmentAngle - segmentAngle / 2);
 
         setRotation(prev => prev + targetRotation);
 
-        try {
-            const spinResult = await gamificationApi.spinLuckyDraw('user-123', 50);
-
-            setTimeout(() => {
-                const prize = PRIZES[prizeIndex];
-                setResult(prize);
-                setSpinning(false);
-                if (prize.value > 0) {
-                    addCoins(prize.value - 50); // Net gain
-                } else {
-                    addCoins(-50); // Lost spin cost
-                }
-            }, 4000);
-        } catch {
-            setTimeout(() => {
-                const prize = PRIZES[prizeIndex];
-                setResult(prize);
-                setSpinning(false);
-                if (prize.value > 0 && prize.type === 'coins') {
-                    addCoins(prize.value - 50);
-                } else {
-                    addCoins(-50);
-                }
-            }, 4000);
-        }
+        setTimeout(() => {
+            const prize = PRIZES[prizeIndex];
+            setResult(prize);
+            setSpinning(false);
+            if (prize.value > 0 && prize.type === 'coins') {
+                setBalance(prev => prev + prize.value);
+            }
+        }, 4000);
     };
 
-    const handleCheckIn = async () => {
-        setCheckingIn(true);
-        try {
-            const result = await gamificationApi.dailyCheckIn('user-123');
-            addCoins(result.reward);
-            setStreak(result.streak);
-            setLastCheckIn(new Date().toISOString());
-            alert(`🎉 +${result.reward} coins! Streak: ${result.streak} days`);
-        } catch {
-            // Mock success
-            const reward = Math.min(streak + 1, 10);
-            addCoins(reward);
-            setStreak(streak + 1);
-            setLastCheckIn(new Date().toISOString());
-            alert(`🎉 +${reward} coins! Streak: ${streak + 1} days`);
-        } finally {
-            setCheckingIn(false);
-        }
+    const handleCheckIn = () => {
+        if (checkedIn) return;
+        const reward = Math.min(streak + 1, 10);
+        setBalance(prev => prev + reward);
+        setStreak(prev => prev + 1);
+        setCheckedIn(true);
     };
 
     return (
-        <div className="container mx-auto py-8">
+        <div className="min-h-screen bg-[#F5F5F5]">
             {/* Header */}
-            <div className="mb-8 rounded-xl bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 p-8 text-white">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-4xl font-bold">🎮 Gamification Center</h1>
-                        <p className="text-lg opacity-90">Earn coins, spin the wheel, complete missions!</p>
-                    </div>
-                    <div className="text-right">
-                        <div className="text-sm opacity-75">Your Balance</div>
-                        <div className="text-4xl font-bold">🪙 {balance.toLocaleString()}</div>
+            <div className="bg-gradient-to-r from-[#EE4D2D] to-[#FF6633] py-6">
+                <div className="container mx-auto px-4">
+                    <div className="flex items-center justify-between text-white">
+                        <div>
+                            <h1 className="text-2xl font-bold">🎮 Shopee Rewards</h1>
+                            <p className="text-sm opacity-90">Chơi game, nhận xu, đổi quà!</p>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-sm opacity-75">Số dư Xu</div>
+                            <div className="text-3xl font-bold flex items-center gap-1">
+                                <span className="text-yellow-300">🪙</span> {balance.toLocaleString()}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div className="grid gap-8 lg:grid-cols-2">
-                {/* Lucky Draw Wheel */}
-                <div className="rounded-xl border bg-white p-8">
-                    <h2 className="mb-6 text-2xl font-bold text-center">🎡 Lucky Draw</h2>
+            <div className="container mx-auto px-4 py-6">
+                <div className="grid gap-6 lg:grid-cols-2">
+                    {/* Lucky Wheel Section */}
+                    <div className="bg-white rounded-sm p-6">
+                        <h2 className="text-lg font-bold text-center mb-6 text-[#EE4D2D]">
+                            🎡 Vòng Quay May Mắn
+                        </h2>
 
-                    <div className="relative mx-auto w-[320px] h-[320px]">
-                        {/* Pointer */}
-                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-20">
-                            <div className="w-0 h-0 border-l-[15px] border-r-[15px] border-t-[25px] border-l-transparent border-r-transparent border-t-red-600" />
-                        </div>
+                        {/* Wheel Container */}
+                        <div className="relative w-72 h-72 mx-auto mb-6">
+                            {/* Pointer */}
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-20">
+                                <div className="w-0 h-0 border-l-[12px] border-r-[12px] border-t-[20px] border-l-transparent border-r-transparent border-t-[#EE4D2D]" />
+                            </div>
 
-                        {/* Wheel */}
-                        <div
-                            ref={wheelRef}
-                            className="w-full h-full rounded-full border-8 border-yellow-500 shadow-2xl overflow-hidden transition-transform"
-                            style={{
-                                transform: `rotate(${rotation}deg)`,
-                                transitionDuration: spinning ? '4s' : '0s',
-                                transitionTimingFunction: 'cubic-bezier(0.17, 0.67, 0.12, 0.99)',
-                            }}
-                        >
-                            <div className="relative w-full h-full">
+                            {/* Wheel */}
+                            <div
+                                ref={wheelRef}
+                                className="w-full h-full rounded-full border-8 border-[#EE4D2D] shadow-xl overflow-hidden relative"
+                                style={{
+                                    transform: `rotate(${rotation}deg)`,
+                                    transition: spinning ? 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
+                                }}
+                            >
                                 {PRIZES.map((prize, index) => {
                                     const angle = (360 / PRIZES.length) * index;
-                                    const skewY = 90 - 360 / PRIZES.length;
-
                                     return (
                                         <div
                                             key={prize.id}
-                                            className="absolute w-1/2 h-1/2 origin-bottom-right overflow-hidden"
+                                            className="absolute w-1/2 h-1/2 origin-bottom-right"
                                             style={{
-                                                transform: `rotate(${angle}deg) skewY(-${skewY}deg)`,
-                                                backgroundColor: prize.color,
+                                                transform: `rotate(${angle}deg) skewY(-${90 - 360 / PRIZES.length}deg)`,
+                                                background: prize.color,
                                             }}
+                                        />
+                                    );
+                                })}
+                                {/* Center circle */}
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-white rounded-full shadow-lg flex items-center justify-center z-10">
+                                    <span className="text-2xl">🎰</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Spin Button */}
+                        <button
+                            onClick={handleSpin}
+                            disabled={spinning || balance < 50}
+                            className={`w-full py-3 rounded font-bold text-white transition-all ${spinning || balance < 50
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-gradient-to-r from-[#EE4D2D] to-[#FF6633] hover:opacity-90 active:scale-[0.98]'
+                                }`}
+                        >
+                            {spinning ? '⏳ Đang quay...' : '🎲 Quay (50 Xu)'}
+                        </button>
+
+                        {/* Result */}
+                        {result && (
+                            <div className={`mt-4 p-4 rounded text-center ${result.value > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                                }`}>
+                                <p className="text-lg font-bold">
+                                    {result.value > 0 ? '🎉 Chúc mừng!' : '😢 Tiếc quá!'}
+                                </p>
+                                <p>{result.name}</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Check-in & Missions */}
+                    <div className="space-y-6">
+                        {/* Daily Check-in */}
+                        <div className="bg-white rounded-sm p-6">
+                            <h2 className="text-lg font-bold mb-4 text-[#EE4D2D]">📅 Điểm Danh Hàng Ngày</h2>
+
+                            {/* Streak Calendar */}
+                            <div className="flex justify-between mb-4">
+                                {[1, 2, 3, 4, 5, 6, 7].map(day => (
+                                    <div
+                                        key={day}
+                                        className={`w-10 h-10 rounded-full flex flex-col items-center justify-center text-xs ${day < streak
+                                                ? 'bg-[#EE4D2D] text-white'
+                                                : day === streak
+                                                    ? 'bg-yellow-400 text-white border-2 border-yellow-500'
+                                                    : 'bg-gray-100 text-gray-500'
+                                            }`}
+                                    >
+                                        <span className="font-bold">{day}</span>
+                                        {day < streak && <span>✓</span>}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-gray-600">
+                                        🔥 Chuỗi: <span className="font-bold text-[#EE4D2D]">{streak} ngày</span>
+                                    </p>
+                                    <p className="text-xs text-gray-400">
+                                        Phần thưởng: {Math.min(streak + 1, 10)} xu
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={handleCheckIn}
+                                    disabled={checkedIn}
+                                    className={`px-6 py-2 rounded font-semibold ${checkedIn
+                                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                            : 'bg-gradient-to-r from-[#EE4D2D] to-[#FF6633] text-white hover:opacity-90'
+                                        }`}
+                                >
+                                    {checkedIn ? '✓ Đã điểm danh' : 'Điểm danh'}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Missions */}
+                        <div className="bg-white rounded-sm p-6">
+                            <h2 className="text-lg font-bold mb-4 text-[#EE4D2D]">🎯 Nhiệm Vụ</h2>
+
+                            <div className="space-y-3">
+                                {missions.map(mission => {
+                                    const progress = missionProgress[mission.id] || 0;
+                                    const completed = progress >= mission.target;
+                                    const percent = Math.min((progress / mission.target) * 100, 100);
+
+                                    return (
+                                        <div
+                                            key={mission.id}
+                                            className={`p-3 rounded border ${completed ? 'bg-green-50 border-green-200' : 'border-gray-200'
+                                                }`}
                                         >
-                                            <div
-                                                className="absolute bottom-4 left-4 text-2xl font-bold text-white drop-shadow-lg"
-                                                style={{
-                                                    transform: `skewY(${skewY}deg) rotate(${180 / PRIZES.length}deg)`,
-                                                }}
-                                            >
-                                                {prize.icon}
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex items-start gap-3">
+                                                    <span className="text-2xl">{mission.icon}</span>
+                                                    <div>
+                                                        <h3 className="font-semibold text-sm">{mission.name}</h3>
+                                                        <p className="text-xs text-gray-500">{mission.description}</p>
+                                                    </div>
+                                                </div>
+                                                <span className="text-[#EE4D2D] font-bold text-sm">+{mission.reward} 🪙</span>
                                             </div>
+
+                                            <div className="mt-2">
+                                                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                                    <span>{progress}/{mission.target}</span>
+                                                    <span>{Math.round(percent)}%</span>
+                                                </div>
+                                                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full rounded-full transition-all ${completed ? 'bg-green-500' : 'bg-[#EE4D2D]'
+                                                            }`}
+                                                        style={{ width: `${percent}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {completed && (
+                                                <button className="mt-2 w-full py-1.5 bg-green-500 text-white text-sm rounded font-semibold hover:bg-green-600">
+                                                    Nhận thưởng
+                                                </button>
+                                            )}
                                         </div>
                                     );
                                 })}
                             </div>
-                        </div>
-
-                        {/* Center Button */}
-                        <button
-                            onClick={handleSpin}
-                            disabled={spinning || balance < 50}
-                            className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full font-bold text-white shadow-lg transition-all z-10 ${spinning || balance < 50
-                                    ? 'bg-gray-400 cursor-not-allowed'
-                                    : 'bg-gradient-to-br from-red-500 to-orange-600 hover:scale-110 active:scale-95'
-                                }`}
-                        >
-                            {spinning ? '🎰' : 'SPIN'}
-                        </button>
-                    </div>
-
-                    <div className="mt-6 text-center">
-                        <p className="text-muted-foreground">Cost: 50 coins per spin</p>
-                        {result && (
-                            <div className={`mt-4 p-4 rounded-lg ${result.value > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100'}`}>
-                                <span className="text-3xl">{result.icon}</span>
-                                <p className="text-lg font-bold">{result.name}</p>
-                                {result.value > 0 && result.type === 'coins' && (
-                                    <p className="text-sm">Net: +{result.value - 50} coins</p>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Daily Check-in & Missions */}
-                <div className="space-y-8">
-                    {/* Daily Check-in */}
-                    <div className="rounded-xl border bg-white p-6">
-                        <h2 className="mb-4 text-xl font-bold">📅 Daily Check-in</h2>
-                        <div className="flex items-center justify-between">
-                            <div className="flex gap-2">
-                                {[1, 2, 3, 4, 5, 6, 7].map((day) => (
-                                    <div
-                                        key={day}
-                                        className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${day <= streak
-                                                ? 'bg-green-500 text-white'
-                                                : day === streak + 1
-                                                    ? 'bg-yellow-100 border-2 border-yellow-500'
-                                                    : 'bg-gray-100'
-                                            }`}
-                                    >
-                                        {day <= streak ? '✓' : day}
-                                    </div>
-                                ))}
-                            </div>
-                            <button
-                                onClick={handleCheckIn}
-                                disabled={checkingIn}
-                                className="rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-3 font-bold text-white hover:from-green-600 hover:to-emerald-700 disabled:opacity-50"
-                            >
-                                {checkingIn ? '...' : 'Check In'}
-                            </button>
-                        </div>
-                        <p className="mt-3 text-sm text-muted-foreground">
-                            🔥 Current streak: {streak} days | Reward: {Math.min(streak + 1, 10)} coins
-                        </p>
-                    </div>
-
-                    {/* Missions */}
-                    <div className="rounded-xl border bg-white p-6">
-                        <h2 className="mb-4 text-xl font-bold">🎯 Missions</h2>
-                        <div className="space-y-4">
-                            {missions.map((mission) => {
-                                const userProgress = userMissions.find((um) => um.mission_id === mission.id);
-                                const progress = userProgress?.progress || 0;
-                                const completed = userProgress?.completed || false;
-                                const claimed = userProgress?.claimed_at != null;
-                                const percent = Math.min((progress / mission.target) * 100, 100);
-
-                                return (
-                                    <div
-                                        key={mission.id}
-                                        className={`rounded-lg border p-4 ${completed ? 'bg-green-50' : 'bg-white'}`}
-                                    >
-                                        <div className="flex items-start justify-between">
-                                            <div>
-                                                <h3 className="font-semibold">{mission.name}</h3>
-                                                <p className="text-sm text-muted-foreground">{mission.description}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className="text-lg font-bold text-yellow-600">
-                                                    +{mission.reward} 🪙
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="mt-3">
-                                            <div className="flex items-center justify-between text-sm">
-                                                <span>{progress}/{mission.target}</span>
-                                                <span>{Math.round(percent)}%</span>
-                                            </div>
-                                            <div className="mt-1 h-2 rounded-full bg-gray-200">
-                                                <div
-                                                    className={`h-full rounded-full transition-all ${completed ? 'bg-green-500' : 'bg-blue-500'
-                                                        }`}
-                                                    style={{ width: `${percent}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                        {completed && !claimed && (
-                                            <button className="mt-3 w-full rounded-lg bg-green-500 py-2 font-bold text-white hover:bg-green-600">
-                                                Claim Reward
-                                            </button>
-                                        )}
-                                        {claimed && (
-                                            <div className="mt-3 text-center text-green-600 font-semibold">
-                                                ✓ Claimed
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
                         </div>
                     </div>
                 </div>

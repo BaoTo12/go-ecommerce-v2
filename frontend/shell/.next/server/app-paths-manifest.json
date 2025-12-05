@@ -1,0 +1,8 @@
+{
+  "/page": "app/page.js",
+  "/deals/flash-sale/page": "app/deals/flash-sale/page.js",
+  "/rewards/page": "app/rewards/page.js",
+  "/live/page": "app/live/page.js",
+  "/deals/coupons/page": "app/deals/coupons/page.js",
+  "/admin/analytics/page": "app/admin/analytics/page.js"
+}

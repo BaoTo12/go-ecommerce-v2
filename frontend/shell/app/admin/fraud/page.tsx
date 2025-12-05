@@ -1,312 +1,243 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { fraudApi, FraudCheck, FraudAlert } from '../../lib/api';
+import React, { useState, useEffect } from 'react';
+
+interface FraudAlert {
+    id: string;
+    severity: 'high' | 'medium' | 'low';
+    message: string;
+    transactionId: string;
+    amount: number;
+    time: string;
+}
+
+interface FraudCheck {
+    id: string;
+    transactionId: string;
+    score: number;
+    riskLevel: string;
+    decision: string;
+    reasons: string[];
+    processingTime: number;
+}
 
 export default function FraudDashboard() {
     const [alerts, setAlerts] = useState<FraudAlert[]>([]);
     const [recentChecks, setRecentChecks] = useState<FraudCheck[]>([]);
-    const [loading, setLoading] = useState(true);
     const [testResult, setTestResult] = useState<FraudCheck | null>(null);
     const [testing, setTesting] = useState(false);
 
     useEffect(() => {
-        loadData();
-        const interval = setInterval(loadData, 10000);
-        return () => clearInterval(interval);
+        setAlerts([
+            { id: 'a1', severity: 'high', message: 'Nhiều giao dịch thất bại từ thiết bị mới', transactionId: 'TXN-12345', amount: 15000000, time: '2 phút trước' },
+            { id: 'a2', severity: 'medium', message: 'Tần suất đặt hàng bất thường', transactionId: 'TXN-12346', amount: 8500000, time: '5 phút trước' },
+        ]);
+
+        setRecentChecks([
+            { id: 'fc1', transactionId: 'TXN-12345', score: 0.85, riskLevel: 'HIGH', decision: 'REVIEW', reasons: ['Thiết bị mới', 'Số tiền lớn'], processingTime: 12 },
+            { id: 'fc2', transactionId: 'TXN-12346', score: 0.45, riskLevel: 'MEDIUM', decision: 'ALLOW', reasons: ['Tần suất cao'], processingTime: 8 },
+            { id: 'fc3', transactionId: 'TXN-12347', score: 0.12, riskLevel: 'LOW', decision: 'ALLOW', reasons: [], processingTime: 5 },
+        ]);
     }, []);
 
-    const loadData = async () => {
-        try {
-            const alertsData = await fraudApi.getAlerts();
-            setAlerts(alertsData || []);
-        } catch {
-            // Mock data
-            setAlerts([
-                {
-                    id: 'alert-1',
-                    fraud_check_id: 'fc-001',
-                    alert_type: 'high_risk',
-                    severity: 'HIGH',
-                    message: 'Multiple failed payments from new device',
-                    acknowledged: false,
-                },
-                {
-                    id: 'alert-2',
-                    fraud_check_id: 'fc-002',
-                    alert_type: 'velocity',
-                    severity: 'MEDIUM',
-                    message: 'Unusual order frequency detected',
-                    acknowledged: false,
-                },
-            ]);
-            setRecentChecks([
-                {
-                    check_id: 'fc-001',
-                    transaction_id: 'txn-12345',
-                    score: 0.85,
-                    risk_level: 'HIGH',
-                    decision: 'REVIEW',
-                    reasons: ['New device', 'High amount', 'Multiple IPs'],
-                    processing_time: 12,
-                },
-                {
-                    check_id: 'fc-002',
-                    transaction_id: 'txn-12346',
-                    score: 0.45,
-                    risk_level: 'MEDIUM',
-                    decision: 'ALLOW',
-                    reasons: ['Order velocity elevated'],
-                    processing_time: 8,
-                },
-                {
-                    check_id: 'fc-003',
-                    transaction_id: 'txn-12347',
-                    score: 0.12,
-                    risk_level: 'LOW',
-                    decision: 'ALLOW',
-                    reasons: [],
-                    processing_time: 5,
-                },
-            ]);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const runTestTransaction = async () => {
+    const runTest = () => {
         setTesting(true);
-        try {
-            const result = await fraudApi.checkTransaction({
-                transaction_id: `txn-test-${Date.now()}`,
-                user_id: 'user-test',
-                amount: 599.99,
-                currency: 'USD',
-                ip: '192.168.1.100',
-                device_id: 'device-new',
-            });
-            setTestResult(result);
-        } catch {
-            // Mock result
+        setTimeout(() => {
             setTestResult({
-                check_id: 'fc-test',
-                transaction_id: `txn-test-${Date.now()}`,
+                id: 'test',
+                transactionId: `TXN-TEST-${Date.now()}`,
                 score: Math.random(),
-                risk_level: Math.random() > 0.7 ? 'HIGH' : Math.random() > 0.4 ? 'MEDIUM' : 'LOW',
+                riskLevel: Math.random() > 0.7 ? 'HIGH' : Math.random() > 0.4 ? 'MEDIUM' : 'LOW',
                 decision: Math.random() > 0.8 ? 'BLOCK' : 'ALLOW',
-                reasons: ['Test transaction', 'New device detected'],
-                processing_time: Math.floor(Math.random() * 20),
+                reasons: ['Giao dịch test', 'Thiết bị mới'],
+                processingTime: Math.floor(Math.random() * 20) + 5,
             });
-        } finally {
             setTesting(false);
-        }
+        }, 1500);
     };
 
     const getRiskColor = (level: string) => {
         switch (level) {
-            case 'HIGH': return 'text-red-600 bg-red-100';
-            case 'MEDIUM': return 'text-yellow-600 bg-yellow-100';
-            case 'LOW': return 'text-green-600 bg-green-100';
-            default: return 'text-gray-600 bg-gray-100';
+            case 'HIGH': return 'bg-red-100 text-red-700';
+            case 'MEDIUM': return 'bg-yellow-100 text-yellow-700';
+            case 'LOW': return 'bg-green-100 text-green-700';
+            default: return 'bg-gray-100 text-gray-700';
         }
     };
-
-    const getDecisionColor = (decision: string) => {
-        switch (decision) {
-            case 'BLOCK': return 'text-red-600';
-            case 'REVIEW': return 'text-yellow-600';
-            case 'ALLOW': return 'text-green-600';
-            default: return 'text-gray-600';
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="flex h-96 items-center justify-center">
-                <div className="animate-pulse text-2xl">🛡️ Loading Fraud Dashboard...</div>
-            </div>
-        );
-    }
 
     return (
-        <div className="container mx-auto py-8">
+        <div className="min-h-screen bg-[#F5F5F5]">
             {/* Header */}
-            <div className="mb-8 rounded-xl bg-gradient-to-r from-slate-800 to-slate-900 p-8 text-white">
+            <div className="bg-gradient-to-r from-slate-800 to-slate-900 text-white px-6 py-6">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold">🛡️ Fraud Detection Center</h1>
-                        <p className="text-slate-300">ML-powered real-time transaction monitoring</p>
+                        <h1 className="text-2xl font-bold">🛡️ Fraud Detection Center</h1>
+                        <p className="text-slate-300 text-sm">Giám sát giao dịch thời gian thực với ML</p>
                     </div>
-                    <div className="flex gap-4">
-                        <div className="text-center">
-                            <div className="text-3xl font-bold">99.7%</div>
-                            <div className="text-sm text-slate-400">Detection Rate</div>
+                    <div className="flex gap-6 text-center">
+                        <div>
+                            <div className="text-2xl font-bold">99.7%</div>
+                            <div className="text-xs text-slate-400">Tỷ lệ phát hiện</div>
                         </div>
-                        <div className="text-center">
-                            <div className="text-3xl font-bold">8ms</div>
-                            <div className="text-sm text-slate-400">Avg Latency</div>
+                        <div>
+                            <div className="text-2xl font-bold">8ms</div>
+                            <div className="text-xs text-slate-400">Độ trễ TB</div>
                         </div>
-                        <div className="text-center">
-                            <div className="text-3xl font-bold">0.02%</div>
-                            <div className="text-sm text-slate-400">False Positive</div>
+                        <div>
+                            <div className="text-2xl font-bold">0.02%</div>
+                            <div className="text-xs text-slate-400">False Positive</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Alerts Section */}
-            {alerts.length > 0 && (
-                <div className="mb-8">
-                    <h2 className="mb-4 text-xl font-bold text-red-600">
-                        🚨 Active Alerts ({alerts.length})
-                    </h2>
-                    <div className="space-y-3">
-                        {alerts.map((alert) => (
-                            <div
-                                key={alert.id}
-                                className={`rounded-lg border-l-4 p-4 ${alert.severity === 'HIGH'
-                                        ? 'border-red-500 bg-red-50'
-                                        : 'border-yellow-500 bg-yellow-50'
-                                    }`}
-                            >
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-2xl">
-                                            {alert.severity === 'HIGH' ? '🔴' : '🟡'}
-                                        </span>
+            <div className="p-6">
+                {/* Alerts */}
+                {alerts.length > 0 && (
+                    <div className="mb-6">
+                        <h2 className="font-bold text-lg mb-3 text-red-600">🚨 Cảnh báo ({alerts.length})</h2>
+                        <div className="space-y-3">
+                            {alerts.map(alert => (
+                                <div
+                                    key={alert.id}
+                                    className={`p-4 rounded border-l-4 ${alert.severity === 'high' ? 'bg-red-50 border-red-500' : 'bg-yellow-50 border-yellow-500'
+                                        }`}
+                                >
+                                    <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="font-semibold">{alert.message}</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                Check ID: {alert.fraud_check_id} | Type: {alert.alert_type}
-                                            </p>
+                                            <span className={`inline-block w-2 h-2 rounded-full mr-2 ${alert.severity === 'high' ? 'bg-red-500' : 'bg-yellow-500'
+                                                }`} />
+                                            <span className="font-semibold">{alert.message}</span>
+                                            <div className="text-sm text-gray-500 mt-1">
+                                                {alert.transactionId} | {alert.amount.toLocaleString()}₫ | {alert.time}
+                                            </div>
                                         </div>
+                                        <button className="bg-white px-4 py-2 rounded text-sm font-semibold hover:bg-gray-50 border">
+                                            Xem xét
+                                        </button>
                                     </div>
-                                    <button className="rounded-lg bg-white px-4 py-2 text-sm font-semibold shadow hover:bg-gray-50">
-                                        Review
-                                    </button>
                                 </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                <div className="grid lg:grid-cols-3 gap-6">
+                    {/* Test Transaction */}
+                    <div className="bg-white rounded p-6">
+                        <h2 className="font-bold text-lg mb-4">🧪 Kiểm tra giao dịch</h2>
+                        <p className="text-sm text-gray-500 mb-4">Chạy giao dịch thử qua hệ thống phát hiện gian lận</p>
+
+                        <button
+                            onClick={runTest}
+                            disabled={testing}
+                            className={`w-full py-3 rounded font-bold text-white ${testing ? 'bg-gray-400' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90'
+                                }`}
+                        >
+                            {testing ? '⏳ Đang phân tích...' : '🔍 Chạy kiểm tra'}
+                        </button>
+
+                        {testResult && (
+                            <div className="mt-4 p-4 border rounded">
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className={`px-3 py-1 rounded text-sm font-bold ${getRiskColor(testResult.riskLevel)}`}>
+                                        {testResult.riskLevel}
+                                    </span>
+                                    <span className={`font-bold ${testResult.decision === 'BLOCK' ? 'text-red-600' : 'text-green-600'
+                                        }`}>
+                                        {testResult.decision}
+                                    </span>
+                                </div>
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Điểm rủi ro</span>
+                                        <span className="font-mono">{(testResult.score * 100).toFixed(1)}%</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Thời gian xử lý</span>
+                                        <span className="font-mono">{testResult.processingTime}ms</span>
+                                    </div>
+                                    {testResult.reasons.length > 0 && (
+                                        <div>
+                                            <span className="text-gray-500">Cảnh báo:</span>
+                                            <ul className="list-disc list-inside text-yellow-600">
+                                                {testResult.reasons.map((r, i) => <li key={i}>{r}</li>)}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Recent Checks */}
+                    <div className="lg:col-span-2 bg-white rounded p-6">
+                        <h2 className="font-bold text-lg mb-4">📋 Kiểm tra gần đây</h2>
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b text-left text-sm text-gray-500">
+                                        <th className="pb-3">Giao dịch</th>
+                                        <th className="pb-3">Điểm</th>
+                                        <th className="pb-3">Rủi ro</th>
+                                        <th className="pb-3">Quyết định</th>
+                                        <th className="pb-3">Thời gian</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-sm">
+                                    {recentChecks.map(check => (
+                                        <tr key={check.id} className="border-b hover:bg-gray-50">
+                                            <td className="py-3 font-mono">{check.transactionId}</td>
+                                            <td className="py-3">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                        <div
+                                                            className={`h-full rounded-full ${check.score > 0.7 ? 'bg-red-500' : check.score > 0.4 ? 'bg-yellow-500' : 'bg-green-500'
+                                                                }`}
+                                                            style={{ width: `${check.score * 100}%` }}
+                                                        />
+                                                    </div>
+                                                    <span>{(check.score * 100).toFixed(0)}%</span>
+                                                </div>
+                                            </td>
+                                            <td className="py-3">
+                                                <span className={`px-2 py-1 rounded text-xs font-bold ${getRiskColor(check.riskLevel)}`}>
+                                                    {check.riskLevel}
+                                                </span>
+                                            </td>
+                                            <td className={`py-3 font-semibold ${check.decision === 'BLOCK' ? 'text-red-600' : check.decision === 'REVIEW' ? 'text-yellow-600' : 'text-green-600'
+                                                }`}>
+                                                {check.decision}
+                                            </td>
+                                            <td className="py-3 text-gray-500">{check.processingTime}ms</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ML Features */}
+                <div className="mt-6 bg-white rounded p-6">
+                    <h2 className="font-bold text-lg mb-4">🤖 Đặc trưng ML</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {[
+                            { icon: '📅', name: 'Tuổi tài khoản' },
+                            { icon: '⚡', name: 'Tần suất giao dịch' },
+                            { icon: '📱', name: 'Device Fingerprint' },
+                            { icon: '🌐', name: 'IP Reputation' },
+                            { icon: '💳', name: 'Lịch sử thanh toán' },
+                            { icon: '📊', name: 'Độ lệch số tiền' },
+                            { icon: '📍', name: 'Vị trí địa lý' },
+                            { icon: '🖱️', name: 'Hành vi phiên' },
+                        ].map(f => (
+                            <div key={f.name} className="p-3 bg-gray-50 rounded text-center">
+                                <div className="text-2xl mb-1">{f.icon}</div>
+                                <div className="text-sm font-semibold">{f.name}</div>
                             </div>
                         ))}
                     </div>
-                </div>
-            )}
-
-            <div className="grid gap-8 lg:grid-cols-3">
-                {/* Test Transaction */}
-                <div className="rounded-xl border bg-white p-6">
-                    <h2 className="mb-4 text-xl font-bold">🧪 Test Transaction</h2>
-                    <p className="mb-4 text-sm text-muted-foreground">
-                        Run a test transaction through the fraud detection engine
-                    </p>
-                    <button
-                        onClick={runTestTransaction}
-                        disabled={testing}
-                        className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 py-3 font-bold text-white hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50"
-                    >
-                        {testing ? 'Analyzing...' : 'Run Test'}
-                    </button>
-
-                    {testResult && (
-                        <div className="mt-4 rounded-lg border p-4">
-                            <div className="mb-3 flex items-center justify-between">
-                                <span className={`rounded-full px-3 py-1 text-sm font-semibold ${getRiskColor(testResult.risk_level)}`}>
-                                    {testResult.risk_level} RISK
-                                </span>
-                                <span className={`font-bold ${getDecisionColor(testResult.decision)}`}>
-                                    {testResult.decision}
-                                </span>
-                            </div>
-                            <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Score</span>
-                                    <span className="font-mono">{(testResult.score * 100).toFixed(1)}%</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Processing</span>
-                                    <span className="font-mono">{testResult.processing_time}ms</span>
-                                </div>
-                                {testResult.reasons.length > 0 && (
-                                    <div>
-                                        <span className="text-muted-foreground">Flags:</span>
-                                        <ul className="mt-1 list-inside list-disc">
-                                            {testResult.reasons.map((r, i) => (
-                                                <li key={i} className="text-yellow-700">{r}</li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Recent Checks */}
-                <div className="lg:col-span-2 rounded-xl border bg-white p-6">
-                    <h2 className="mb-4 text-xl font-bold">📋 Recent Fraud Checks</h2>
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b text-left text-sm text-muted-foreground">
-                                    <th className="pb-3">Transaction</th>
-                                    <th className="pb-3">Score</th>
-                                    <th className="pb-3">Risk</th>
-                                    <th className="pb-3">Decision</th>
-                                    <th className="pb-3">Time</th>
-                                </tr>
-                            </thead>
-                            <tbody className="text-sm">
-                                {recentChecks.map((check) => (
-                                    <tr key={check.check_id} className="border-b hover:bg-gray-50">
-                                        <td className="py-3 font-mono">{check.transaction_id}</td>
-                                        <td className="py-3">
-                                            <div className="flex items-center gap-2">
-                                                <div className="h-2 w-16 rounded-full bg-gray-200">
-                                                    <div
-                                                        className={`h-full rounded-full ${check.score > 0.7 ? 'bg-red-500' : check.score > 0.4 ? 'bg-yellow-500' : 'bg-green-500'
-                                                            }`}
-                                                        style={{ width: `${check.score * 100}%` }}
-                                                    />
-                                                </div>
-                                                <span>{(check.score * 100).toFixed(0)}%</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-3">
-                                            <span className={`rounded-full px-2 py-1 text-xs font-semibold ${getRiskColor(check.risk_level)}`}>
-                                                {check.risk_level}
-                                            </span>
-                                        </td>
-                                        <td className={`py-3 font-semibold ${getDecisionColor(check.decision)}`}>
-                                            {check.decision}
-                                        </td>
-                                        <td className="py-3 text-muted-foreground">{check.processing_time}ms</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            {/* ML Features */}
-            <div className="mt-8 rounded-xl border bg-gradient-to-r from-slate-50 to-slate-100 p-8">
-                <h2 className="mb-6 text-2xl font-bold">🤖 ML Feature Engineering</h2>
-                <div className="grid gap-4 md:grid-cols-4">
-                    {[
-                        { name: 'Account Age', icon: '📅', desc: 'Days since creation' },
-                        { name: 'Order Velocity', icon: '⚡', desc: 'Orders per time period' },
-                        { name: 'Device Fingerprint', icon: '📱', desc: 'Unique device tracking' },
-                        { name: 'IP Reputation', icon: '🌐', desc: 'IP risk scoring' },
-                        { name: 'Payment History', icon: '💳', desc: 'Past payment patterns' },
-                        { name: 'Amount Deviation', icon: '📊', desc: 'vs historical average' },
-                        { name: 'Geo-Location', icon: '📍', desc: 'Location anomaly detection' },
-                        { name: 'Session Behavior', icon: '🖱️', desc: 'Browsing patterns' },
-                    ].map((feature) => (
-                        <div key={feature.name} className="rounded-lg bg-white p-4 shadow-sm">
-                            <div className="mb-2 text-2xl">{feature.icon}</div>
-                            <h3 className="font-semibold">{feature.name}</h3>
-                            <p className="text-xs text-muted-foreground">{feature.desc}</p>
-                        </div>
-                    ))}
                 </div>
             </div>
         </div>

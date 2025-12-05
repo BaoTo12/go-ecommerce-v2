@@ -1,165 +1,130 @@
 'use client';
 
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
-import { useGamificationStore, useCartStore, useAuthStore } from '../lib/store';
 
 const navigation = [
-    {
-        label: 'Shop',
-        items: [
-            { href: '/', label: 'Home', icon: '🏠' },
-            { href: '/products', label: 'Products', icon: '🛍️' },
-            { href: '/live', label: 'Live Shopping', icon: '🔴' },
-        ],
-    },
-    {
-        label: 'Deals',
-        items: [
-            { href: '/deals/flash-sale', label: 'Flash Sale', icon: '⚡' },
-            { href: '/deals/coupons', label: 'Coupons', icon: '🎟️' },
-        ],
-    },
-    {
-        label: 'Rewards',
-        items: [
-            { href: '/rewards', label: 'Gamification', icon: '🎮' },
-        ],
-    },
-    {
-        label: 'Admin',
-        items: [
-            { href: '/admin/analytics', label: 'Analytics', icon: '📊' },
-            { href: '/admin/fraud', label: 'Fraud Detection', icon: '🛡️' },
-            { href: '/admin/pricing', label: 'Dynamic Pricing', icon: '💹' },
-        ],
-    },
+    { href: '/', label: 'Trang chủ', icon: '🏠' },
+    { href: '/deals/flash-sale', label: 'Flash Sale', icon: '⚡' },
+    { href: '/live', label: 'Shopee Live', icon: '🔴' },
+    { href: '/rewards', label: 'Xu & Game', icon: '🎮' },
+    { href: '/deals/coupons', label: 'Mã giảm giá', icon: '🎟️' },
+];
+
+const adminNav = [
+    { href: '/admin/analytics', label: 'Analytics', icon: '📊' },
+    { href: '/admin/fraud', label: 'Fraud', icon: '🛡️' },
+    { href: '/admin/pricing', label: 'Pricing', icon: '💹' },
 ];
 
 export default function Navigation() {
     const pathname = usePathname();
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const { balance } = useGamificationStore();
-    const { items } = useCartStore();
-    const { isAuthenticated, user, login } = useAuthStore();
-
-    const handleMockLogin = () => {
-        login({
-            id: 'user-123',
-            name: 'Demo User',
-            email: 'demo@titan.com',
-        });
-    };
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const [coins] = useState(1250);
 
     return (
-        <header className="sticky top-0 z-50 border-b bg-white/80 backdrop-blur-lg">
+        <header className="sticky top-0 z-50 bg-gradient-to-r from-[#EE4D2D] to-[#FF6633] shadow-md">
             <div className="container mx-auto">
-                <div className="flex h-16 items-center justify-between px-4">
+                {/* Main nav */}
+                <div className="flex items-center justify-between h-14 px-4">
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2">
-                        <span className="text-2xl">🚀</span>
-                        <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                            Titan Commerce
-                        </span>
+                        <span className="text-white text-2xl font-bold tracking-tight">Shopee</span>
                     </Link>
 
-                    {/* Desktop Navigation */}
-                    <nav className="hidden md:flex items-center gap-6">
-                        {navigation.map((group) => (
-                            <div key={group.label} className="relative group">
-                                <button className="text-sm font-medium text-gray-700 hover:text-gray-900 py-2">
-                                    {group.label}
-                                </button>
-                                <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                                    <div className="rounded-lg border bg-white shadow-lg p-2 min-w-[180px]">
-                                        {group.items.map((item) => (
-                                            <Link
-                                                key={item.href}
-                                                href={item.href}
-                                                className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100 ${pathname === item.href ? 'bg-blue-50 text-blue-600' : ''
-                                                    }`}
-                                            >
-                                                <span>{item.icon}</span>
-                                                {item.label}
-                                            </Link>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </nav>
+                    {/* Search Bar */}
+                    <div className="hidden md:flex flex-1 max-w-xl mx-8">
+                        <div className="relative w-full">
+                            <input
+                                type="text"
+                                placeholder="Tìm kiếm sản phẩm..."
+                                className="w-full py-2 px-4 pr-12 rounded-sm text-sm focus:outline-none"
+                            />
+                            <button className="absolute right-0 top-0 h-full px-4 bg-[#FB6445] text-white rounded-r-sm hover:bg-[#EE4D2D]">
+                                🔍
+                            </button>
+                        </div>
+                    </div>
 
                     {/* Right side */}
                     <div className="flex items-center gap-4">
                         {/* Coins */}
-                        <div className="hidden sm:flex items-center gap-1 rounded-full bg-yellow-100 px-3 py-1">
-                            <span>🪙</span>
-                            <span className="font-semibold text-yellow-700">{balance}</span>
+                        <div className="hidden sm:flex items-center gap-1 bg-white/10 text-white px-3 py-1 rounded">
+                            <span className="text-yellow-300">🪙</span>
+                            <span className="font-semibold">{coins.toLocaleString()}</span>
                         </div>
 
                         {/* Cart */}
-                        <Link
-                            href="/cart"
-                            className="relative rounded-full bg-gray-100 p-2 hover:bg-gray-200"
-                        >
+                        <Link href="/cart" className="relative text-white hover:opacity-80">
                             <span className="text-xl">🛒</span>
-                            {items.length > 0 && (
-                                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
-                                    {items.length}
-                                </span>
-                            )}
+                            <span className="absolute -top-1 -right-1 bg-white text-[#EE4D2D] text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                                3
+                            </span>
                         </Link>
 
                         {/* User */}
-                        {isAuthenticated ? (
-                            <div className="flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1">
-                                <span>👤</span>
-                                <span className="text-sm font-medium">{user?.name}</span>
-                            </div>
-                        ) : (
-                            <button
-                                onClick={handleMockLogin}
-                                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-                            >
-                                Login
-                            </button>
-                        )}
+                        <div className="hidden sm:flex items-center gap-2 text-white">
+                            <span>👤</span>
+                            <span className="text-sm">Đăng nhập</span>
+                        </div>
 
-                        {/* Mobile menu button */}
+                        {/* Mobile menu */}
                         <button
-                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            className="md:hidden rounded-lg p-2 hover:bg-gray-100"
+                            onClick={() => setMobileOpen(!mobileOpen)}
+                            className="md:hidden text-white text-xl"
                         >
-                            <span className="text-xl">{mobileMenuOpen ? '✕' : '☰'}</span>
+                            {mobileOpen ? '✕' : '☰'}
                         </button>
                     </div>
                 </div>
 
-                {/* Mobile Navigation */}
-                {mobileMenuOpen && (
-                    <div className="md:hidden border-t py-4 px-4">
-                        {navigation.map((group) => (
-                            <div key={group.label} className="mb-4">
-                                <div className="text-xs font-semibold text-gray-500 uppercase mb-2">
-                                    {group.label}
-                                </div>
-                                <div className="space-y-1">
-                                    {group.items.map((item) => (
-                                        <Link
-                                            key={item.href}
-                                            href={item.href}
-                                            onClick={() => setMobileMenuOpen(false)}
-                                            className={`flex items-center gap-2 rounded-md px-3 py-2 hover:bg-gray-100 ${pathname === item.href ? 'bg-blue-50 text-blue-600' : ''
-                                                }`}
-                                        >
-                                            <span>{item.icon}</span>
-                                            {item.label}
-                                        </Link>
-                                    ))}
-                                </div>
-                            </div>
+                {/* Desktop Navigation */}
+                <div className="hidden md:flex items-center h-10 px-4 bg-white/10">
+                    {navigation.map(item => (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            className={`flex items-center gap-1 px-4 text-sm text-white hover:opacity-80 ${pathname === item.href ? 'font-bold' : ''
+                                }`}
+                        >
+                            <span>{item.icon}</span>
+                            {item.label}
+                        </Link>
+                    ))}
+                    <div className="ml-auto flex items-center">
+                        <span className="text-white/50 text-sm mr-2">Admin:</span>
+                        {adminNav.map(item => (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={`flex items-center gap-1 px-3 text-sm text-white hover:opacity-80 ${pathname === item.href ? 'font-bold' : ''
+                                    }`}
+                            >
+                                <span>{item.icon}</span>
+                                {item.label}
+                            </Link>
                         ))}
+                    </div>
+                </div>
+
+                {/* Mobile Navigation */}
+                {mobileOpen && (
+                    <div className="md:hidden bg-white border-t">
+                        <div className="p-4 space-y-2">
+                            {[...navigation, ...adminNav].map(item => (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    onClick={() => setMobileOpen(false)}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded ${pathname === item.href ? 'bg-[#FFEEE8] text-[#EE4D2D]' : 'hover:bg-gray-100'
+                                        }`}
+                                >
+                                    <span>{item.icon}</span>
+                                    {item.label}
+                                </Link>
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>

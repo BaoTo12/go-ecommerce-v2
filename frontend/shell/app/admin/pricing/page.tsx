@@ -1,242 +1,233 @@
 'use client';
 
-import { useState } from 'react';
-import { pricingApi } from '../../lib/api';
+import React, { useState } from 'react';
+
+interface Product {
+    id: string;
+    name: string;
+    category: string;
+    basePrice: number;
+    thumbnail: string;
+}
+
+interface PriceAnalysis {
+    productId: string;
+    productName: string;
+    basePrice: number;
+    optimizedPrice: number;
+    demandLevel: string;
+    competitorPrices: number[];
+    revenueIncrease: number;
+    recommendation: string;
+}
 
 export default function DynamicPricingPage() {
-    const [productId, setProductId] = useState('');
-    const [priceData, setPriceData] = useState<any>(null);
+    const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+    const [analysis, setAnalysis] = useState<PriceAnalysis | null>(null);
     const [loading, setLoading] = useState(false);
     const [optimizing, setOptimizing] = useState(false);
 
-    const demoProducts = [
-        { id: 'p001', name: 'iPhone 15 Pro', category: 'Electronics', basePrice: 999 },
-        { id: 'p002', name: 'Nike Air Max', category: 'Fashion', basePrice: 189 },
-        { id: 'p003', name: 'Sony Headphones', category: 'Electronics', basePrice: 349 },
-        { id: 'p004', name: 'Dyson Vacuum', category: 'Home', basePrice: 699 },
+    const products: Product[] = [
+        { id: 'p1', name: 'iPhone 15 Pro Max', category: 'Điện thoại', basePrice: 34990000, thumbnail: '📱' },
+        { id: 'p2', name: 'MacBook Air M3', category: 'Laptop', basePrice: 27990000, thumbnail: '💻' },
+        { id: 'p3', name: 'Sony WH-1000XM5', category: 'Tai nghe', basePrice: 8990000, thumbnail: '🎧' },
+        { id: 'p4', name: 'Nike Air Max', category: 'Giày dép', basePrice: 4590000, thumbnail: '👟' },
     ];
 
-    const analyzePrice = async (id: string) => {
-        setProductId(id);
+    const analyzePrice = (productId: string) => {
+        setSelectedProduct(productId);
         setLoading(true);
 
-        try {
-            const data = await pricingApi.getPrice(id);
-            setPriceData(data);
-        } catch {
-            // Mock data
-            const product = demoProducts.find(p => p.id === id);
-            if (product) {
-                const basePrice = product.basePrice;
-                const demandMultiplier = 0.9 + Math.random() * 0.3;
-                const competitorPrices = [
-                    basePrice * (0.95 + Math.random() * 0.15),
-                    basePrice * (0.9 + Math.random() * 0.2),
-                    basePrice * (0.85 + Math.random() * 0.25),
-                ];
-                const optimizedPrice = basePrice * demandMultiplier * 0.98;
+        setTimeout(() => {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
 
-                setPriceData({
-                    product_id: id,
-                    product_name: product.name,
-                    base_price: basePrice,
-                    optimized_price: optimizedPrice,
-                    competitor_prices: competitorPrices,
-                    demand_level: Math.random() > 0.5 ? 'HIGH' : 'MEDIUM',
-                    inventory_level: Math.floor(Math.random() * 500) + 50,
-                    price_elasticity: -1.2 + Math.random() * 0.8,
-                    recommendation: optimizedPrice < basePrice ? 'LOWER' : 'RAISE',
-                    potential_revenue_increase: (Math.random() * 15).toFixed(1),
-                });
-            }
-        } finally {
+            const demandMultiplier = 0.9 + Math.random() * 0.2;
+            const optimizedPrice = Math.round(product.basePrice * demandMultiplier);
+
+            setAnalysis({
+                productId,
+                productName: product.name,
+                basePrice: product.basePrice,
+                optimizedPrice,
+                demandLevel: Math.random() > 0.5 ? 'CAO' : 'TRUNG BÌNH',
+                competitorPrices: [
+                    Math.round(product.basePrice * (0.92 + Math.random() * 0.1)),
+                    Math.round(product.basePrice * (0.95 + Math.random() * 0.12)),
+                    Math.round(product.basePrice * (0.88 + Math.random() * 0.15)),
+                ],
+                revenueIncrease: Math.round(Math.random() * 15 * 10) / 10,
+                recommendation: optimizedPrice < product.basePrice ? 'GIẢM' : 'TĂNG',
+            });
             setLoading(false);
-        }
+        }, 1000);
     };
 
-    const optimizePrice = async () => {
-        if (!productId) return;
+    const applyOptimizedPrice = () => {
         setOptimizing(true);
-
-        try {
-            await pricingApi.optimizePrice(productId);
-            // Refresh data
-            await analyzePrice(productId);
-        } catch {
-            // Mock optimization
-            setPriceData((prev: any) => ({
-                ...prev,
-                optimized_price: prev.base_price * 0.95,
-                status: 'OPTIMIZED',
-            }));
-        } finally {
+        setTimeout(() => {
             setOptimizing(false);
-        }
+            alert('✅ Đã áp dụng giá tối ưu!');
+        }, 1500);
+    };
+
+    const formatPrice = (price: number) => {
+        return new Intl.NumberFormat('vi-VN').format(price) + '₫';
     };
 
     return (
-        <div className="container mx-auto py-8">
+        <div className="min-h-screen bg-[#F5F5F5]">
             {/* Header */}
-            <div className="mb-8 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 p-8 text-white">
-                <h1 className="text-3xl font-bold">💹 Dynamic Pricing Engine</h1>
-                <p className="mt-2 text-lg opacity-90">
-                    AI-powered price optimization for maximum revenue
-                </p>
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-6 py-6">
+                <h1 className="text-2xl font-bold">💹 Dynamic Pricing Engine</h1>
+                <p className="text-emerald-100 text-sm">Tối ưu giá với AI để tăng doanh thu</p>
             </div>
 
-            <div className="grid gap-8 lg:grid-cols-3">
-                {/* Product Selection */}
-                <div className="rounded-xl border bg-white p-6">
-                    <h2 className="mb-4 text-xl font-bold">📦 Select Product</h2>
-                    <div className="space-y-3">
-                        {demoProducts.map((product) => (
-                            <button
-                                key={product.id}
-                                onClick={() => analyzePrice(product.id)}
-                                className={`w-full rounded-lg border p-4 text-left transition-all hover:shadow-md ${productId === product.id ? 'border-emerald-500 bg-emerald-50' : ''
-                                    }`}
-                            >
-                                <div className="font-semibold">{product.name}</div>
-                                <div className="flex justify-between text-sm text-muted-foreground">
-                                    <span>{product.category}</span>
-                                    <span>${product.basePrice}</span>
+            <div className="p-6">
+                <div className="grid lg:grid-cols-3 gap-6">
+                    {/* Product Selection */}
+                    <div className="bg-white rounded p-6">
+                        <h2 className="font-bold text-lg mb-4">📦 Chọn sản phẩm</h2>
+                        <div className="space-y-3">
+                            {products.map(product => (
+                                <button
+                                    key={product.id}
+                                    onClick={() => analyzePrice(product.id)}
+                                    className={`w-full p-4 rounded border text-left transition-all ${selectedProduct === product.id
+                                            ? 'border-emerald-500 bg-emerald-50'
+                                            : 'border-gray-200 hover:border-gray-300'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-3xl">{product.thumbnail}</span>
+                                        <div>
+                                            <div className="font-semibold text-sm">{product.name}</div>
+                                            <div className="text-xs text-gray-500">{product.category}</div>
+                                            <div className="text-sm text-emerald-600 font-bold mt-1">
+                                                {formatPrice(product.basePrice)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Analysis Results */}
+                    <div className="lg:col-span-2 space-y-6">
+                        {loading && (
+                            <div className="bg-white rounded p-12 text-center">
+                                <div className="text-3xl animate-bounce">📊</div>
+                                <p className="mt-2 text-gray-500">Đang phân tích...</p>
+                            </div>
+                        )}
+
+                        {analysis && !loading && (
+                            <>
+                                {/* Price Comparison */}
+                                <div className="bg-white rounded p-6">
+                                    <h2 className="font-bold text-lg mb-4">💰 Phân tích giá</h2>
+
+                                    <div className="grid md:grid-cols-3 gap-4 mb-6">
+                                        <div className="p-4 bg-gray-100 rounded text-center">
+                                            <div className="text-sm text-gray-500">Giá gốc</div>
+                                            <div className="text-xl font-bold">{formatPrice(analysis.basePrice)}</div>
+                                        </div>
+                                        <div className="p-4 bg-emerald-100 rounded text-center">
+                                            <div className="text-sm text-emerald-700">Giá tối ưu</div>
+                                            <div className="text-xl font-bold text-emerald-600">
+                                                {formatPrice(analysis.optimizedPrice)}
+                                            </div>
+                                            <div className={`text-sm font-semibold ${analysis.optimizedPrice < analysis.basePrice ? 'text-red-500' : 'text-green-500'
+                                                }`}>
+                                                {analysis.optimizedPrice < analysis.basePrice ? '↓' : '↑'}
+                                                {Math.abs(((analysis.optimizedPrice - analysis.basePrice) / analysis.basePrice) * 100).toFixed(1)}%
+                                            </div>
+                                        </div>
+                                        <div className="p-4 bg-blue-100 rounded text-center">
+                                            <div className="text-sm text-blue-700">Tăng doanh thu dự kiến</div>
+                                            <div className="text-xl font-bold text-blue-600">+{analysis.revenueIncrease}%</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Competitor Prices */}
+                                    <div className="mb-6">
+                                        <h3 className="font-semibold text-sm mb-2">🏪 Giá đối thủ</h3>
+                                        <div className="flex gap-3">
+                                            {analysis.competitorPrices.map((price, i) => (
+                                                <div key={i} className="px-4 py-2 bg-gray-50 rounded text-center">
+                                                    <div className="text-xs text-gray-400">Đối thủ {i + 1}</div>
+                                                    <div className="font-semibold">{formatPrice(price)}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={applyOptimizedPrice}
+                                        disabled={optimizing}
+                                        className={`w-full py-3 rounded font-bold text-white ${optimizing
+                                                ? 'bg-gray-400'
+                                                : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90'
+                                            }`}
+                                    >
+                                        {optimizing ? '⏳ Đang áp dụng...' : '🚀 Áp dụng giá tối ưu'}
+                                    </button>
                                 </div>
-                            </button>
-                        ))}
+
+                                {/* Pricing Factors */}
+                                <div className="bg-white rounded p-6">
+                                    <h2 className="font-bold text-lg mb-4">📈 Yếu tố định giá</h2>
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded">
+                                            <span className={`px-3 py-1 rounded text-sm font-bold ${analysis.demandLevel === 'CAO' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+                                                }`}>
+                                                {analysis.demandLevel}
+                                            </span>
+                                            <div>
+                                                <div className="font-semibold text-sm">Mức độ nhu cầu</div>
+                                                <div className="text-xs text-gray-500">Dựa trên xu hướng thị trường</div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded">
+                                            <span className="text-2xl">{analysis.recommendation === 'GIẢM' ? '⬇️' : '⬆️'}</span>
+                                            <div>
+                                                <div className="font-semibold text-sm">{analysis.recommendation} giá</div>
+                                                <div className="text-xs text-gray-500">Khuyến nghị AI</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {!analysis && !loading && (
+                            <div className="bg-white rounded p-12 text-center">
+                                <div className="text-4xl mb-2">👈</div>
+                                <p className="text-gray-500">Chọn sản phẩm để phân tích</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Price Analysis */}
-                <div className="lg:col-span-2 space-y-6">
-                    {loading && (
-                        <div className="flex h-64 items-center justify-center rounded-xl border bg-white">
-                            <div className="animate-pulse text-xl">📊 Analyzing...</div>
-                        </div>
-                    )}
-
-                    {priceData && !loading && (
-                        <>
-                            {/* Price Comparison */}
-                            <div className="rounded-xl border bg-white p-6">
-                                <h2 className="mb-4 text-xl font-bold">💰 Price Analysis</h2>
-
-                                <div className="grid gap-4 md:grid-cols-3">
-                                    <div className="rounded-lg bg-gray-100 p-4 text-center">
-                                        <div className="text-sm text-muted-foreground">Base Price</div>
-                                        <div className="text-2xl font-bold">${priceData.base_price.toFixed(2)}</div>
-                                    </div>
-                                    <div className="rounded-lg bg-emerald-100 p-4 text-center">
-                                        <div className="text-sm text-emerald-700">Optimized Price</div>
-                                        <div className="text-2xl font-bold text-emerald-600">
-                                            ${priceData.optimized_price.toFixed(2)}
-                                        </div>
-                                        <div className={`text-sm ${priceData.optimized_price < priceData.base_price ? 'text-red-600' : 'text-green-600'}`}>
-                                            {priceData.optimized_price < priceData.base_price ? '↓' : '↑'}
-                                            {Math.abs(((priceData.optimized_price - priceData.base_price) / priceData.base_price) * 100).toFixed(1)}%
-                                        </div>
-                                    </div>
-                                    <div className="rounded-lg bg-blue-100 p-4 text-center">
-                                        <div className="text-sm text-blue-700">Potential Increase</div>
-                                        <div className="text-2xl font-bold text-blue-600">
-                                            +{priceData.potential_revenue_increase}%
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">Revenue</div>
-                                    </div>
-                                </div>
-
-                                {/* Competitor Prices */}
-                                <div className="mt-6">
-                                    <h3 className="mb-2 font-semibold">🏪 Competitor Prices</h3>
-                                    <div className="flex gap-3">
-                                        {priceData.competitor_prices.map((price: number, i: number) => (
-                                            <div key={i} className="rounded-lg border px-4 py-2 text-center">
-                                                <div className="text-xs text-muted-foreground">Competitor {i + 1}</div>
-                                                <div className="font-semibold">${price.toFixed(2)}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Action Button */}
-                                <button
-                                    onClick={optimizePrice}
-                                    disabled={optimizing}
-                                    className="mt-6 w-full rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 py-3 font-bold text-white hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50"
-                                >
-                                    {optimizing ? 'Optimizing...' : '🚀 Apply Optimized Price'}
-                                </button>
+                {/* Algorithm Info */}
+                <div className="mt-6 bg-white rounded p-6">
+                    <h2 className="font-bold text-lg mb-4">🤖 Thuật toán định giá</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+                        {[
+                            { icon: '📈', name: 'Dự báo nhu cầu' },
+                            { icon: '🏪', name: 'Phân tích đối thủ' },
+                            { icon: '📦', name: 'Mức tồn kho' },
+                            { icon: '⏰', name: 'Mẫu theo thời gian' },
+                            { icon: '👥', name: 'Phân khúc KH' },
+                        ].map(f => (
+                            <div key={f.name} className="p-4 bg-gray-50 rounded">
+                                <div className="text-3xl mb-2">{f.icon}</div>
+                                <div className="text-sm font-semibold">{f.name}</div>
                             </div>
-
-                            {/* Factors */}
-                            <div className="rounded-xl border bg-white p-6">
-                                <h2 className="mb-4 text-xl font-bold">📈 Pricing Factors</h2>
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <div className="flex items-center gap-4 rounded-lg border p-4">
-                                        <div className={`rounded-full px-3 py-1 text-sm font-semibold ${priceData.demand_level === 'HIGH' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
-                                            }`}>
-                                            {priceData.demand_level}
-                                        </div>
-                                        <div>
-                                            <div className="font-semibold">Demand Level</div>
-                                            <div className="text-sm text-muted-foreground">Current market demand</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-4 rounded-lg border p-4">
-                                        <div className="text-2xl">📦</div>
-                                        <div>
-                                            <div className="font-semibold">{priceData.inventory_level} units</div>
-                                            <div className="text-sm text-muted-foreground">In stock</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-4 rounded-lg border p-4">
-                                        <div className="text-2xl">📊</div>
-                                        <div>
-                                            <div className="font-semibold">{priceData.price_elasticity.toFixed(2)}</div>
-                                            <div className="text-sm text-muted-foreground">Price elasticity</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-4 rounded-lg border p-4">
-                                        <div className={`text-2xl ${priceData.recommendation === 'LOWER' ? '⬇️' : '⬆️'}`}></div>
-                                        <div>
-                                            <div className="font-semibold">{priceData.recommendation} Price</div>
-                                            <div className="text-sm text-muted-foreground">AI recommendation</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </>
-                    )}
-
-                    {!priceData && !loading && (
-                        <div className="flex h-64 items-center justify-center rounded-xl border bg-gradient-to-br from-slate-50 to-slate-100">
-                            <div className="text-center text-muted-foreground">
-                                <div className="text-4xl mb-2">👈</div>
-                                Select a product to analyze
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Algorithm Info */}
-            <div className="mt-8 rounded-xl border bg-gradient-to-r from-slate-50 to-slate-100 p-8">
-                <h2 className="mb-6 text-2xl font-bold">🤖 Pricing Algorithm Factors</h2>
-                <div className="grid gap-4 md:grid-cols-5">
-                    {[
-                        { icon: '📈', name: 'Demand Forecasting' },
-                        { icon: '🏪', name: 'Competitor Analysis' },
-                        { icon: '📦', name: 'Inventory Levels' },
-                        { icon: '⏰', name: 'Time-based Patterns' },
-                        { icon: '👥', name: 'Customer Segments' },
-                    ].map((factor) => (
-                        <div key={factor.name} className="rounded-lg bg-white p-4 text-center shadow-sm">
-                            <div className="text-3xl mb-2">{factor.icon}</div>
-                            <div className="text-sm font-semibold">{factor.name}</div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>

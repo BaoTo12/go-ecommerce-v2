@@ -1,0 +1,298 @@
+/*!***************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ../node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!../node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!./app/globals.css ***!
+  \***************************************************************************************************************************************************************************************************************************************************************/
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Shopee Colors */
+  --shopee-orange: #EE4D2D;
+  --shopee-orange-dark: #D73211;
+  --shopee-orange-light: #FFEEE8;
+  --shopee-red: #FF424E;
+  --shopee-green: #00BFA5;
+  --shopee-blue: #5886C5;
+  --shopee-yellow: #FFBF00;
+  --shopee-bg: #F5F5F5;
+  --shopee-white: #FFFFFF;
+  --shopee-gray: #757575;
+  --shopee-gray-light: #EEEEEE;
+  --shopee-text: #222222;
+  --shopee-text-light: #757575;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Helvetica Neue', Roboto, 'Open Sans', sans-serif;
+  background-color: var(--shopee-bg);
+  color: var(--shopee-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Shopee Button Styles */
+.btn-shopee {
+  background: linear-gradient(180deg, #f63 0%, var(--shopee-orange) 100%);
+  color: white;
+  border: none;
+  border-radius: 2px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-shopee:hover {
+  opacity: 0.9;
+}
+
+.btn-shopee:active {
+  opacity: 0.8;
+}
+
+.btn-shopee-outline {
+  background: white;
+  color: var(--shopee-orange);
+  border: 1px solid var(--shopee-orange);
+  border-radius: 2px;
+}
+
+.btn-shopee-outline:hover {
+  background: var(--shopee-orange-light);
+}
+
+/* Shopee Card */
+.shopee-card {
+  background: white;
+  border-radius: 2px;
+  box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.shopee-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* Price styling */
+.shopee-price {
+  color: var(--shopee-orange);
+  font-weight: 500;
+}
+
+.shopee-price-original {
+  color: var(--shopee-text-light);
+  text-decoration: line-through;
+  font-size: 0.85em;
+}
+
+/* Discount badge */
+.shopee-discount-badge {
+  background: var(--shopee-orange);
+  color: white;
+  padding: 2px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 2px;
+}
+
+/* Progress bar (flash sale) */
+.shopee-progress {
+  height: 16px;
+  background: linear-gradient(90deg, #ee4d2d 0%, #ff7337 100%);
+  border-radius: 100px;
+  position: relative;
+  overflow: hidden;
+}
+
+.shopee-progress::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Flash sale timer */
+.shopee-timer {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.shopee-timer-box {
+  background: #222;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 2px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Roboto Mono', monospace;
+}
+
+/* Live badge */
+.shopee-live-badge {
+  background: linear-gradient(90deg, #ee4d2d, #ff6633);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.shopee-live-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 50%;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Coin style */
+.shopee-coin {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #FFB400;
+  font-weight: 600;
+}
+
+.shopee-coin::before {
+  content: '🪙';
+}
+
+/* Voucher style */
+.shopee-voucher {
+  background: linear-gradient(135deg, #fff 0%, #fff5f5 100%);
+  border: 1px dashed var(--shopee-orange);
+  border-left: 4px solid var(--shopee-orange);
+  border-radius: 2px;
+  padding: 12px 16px;
+  position: relative;
+}
+
+.shopee-voucher::before,
+.shopee-voucher::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: var(--shopee-bg);
+  border-radius: 50%;
+  left: -1px;
+}
+
+.shopee-voucher::before {
+  top: -8px;
+  border-bottom: 1px dashed var(--shopee-orange);
+}
+
+.shopee-voucher::after {
+  bottom: -8px;
+  border-top: 1px dashed var(--shopee-orange);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}
+
+/* Category grid */
+.category-item:hover .category-icon {
+  transform: scale(1.1);
+}
+
+/* Product card hover effect */
+.product-card {
+  transition: all 0.2s ease;
+}
+
+.product-card:hover {
+  border-color: var(--shopee-orange);
+}
+
+.product-card:hover .product-image {
+  transform: scale(1.05);
+}
+
+/* Animation utilities */
+.animate-bounce-slow {
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Text utilities */
+.text-shopee {
+  color: var(--shopee-orange);
+}
+
+.bg-shopee {
+  background-color: var(--shopee-orange);
+}
+
+.border-shopee {
+  border-color: var(--shopee-orange);
+}
+
+/* Lucky draw wheel */
+.wheel-segment {
+  -webkit-clip-path: polygon(50% 50%, 100% 0, 100% 100%);
+          clip-path: polygon(50% 50%, 100% 0, 100% 100%);
+}

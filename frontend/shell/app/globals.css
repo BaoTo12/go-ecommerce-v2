@@ -3,150 +3,292 @@
 @tailwind utilities;
 
 :root {
-  --foreground: #0a0a0a;
-  --background: #f5f5f5;
-  --muted-foreground: #6b7280;
-  --primary: #2563eb;
-  --primary-foreground: #ffffff;
-  --accent: #f1f5f9;
+  /* Shopee Colors */
+  --shopee-orange: #EE4D2D;
+  --shopee-orange-dark: #D73211;
+  --shopee-orange-light: #FFEEE8;
+  --shopee-red: #FF424E;
+  --shopee-green: #00BFA5;
+  --shopee-blue: #5886C5;
+  --shopee-yellow: #FFBF00;
+  --shopee-bg: #F5F5F5;
+  --shopee-white: #FFFFFF;
+  --shopee-gray: #757575;
+  --shopee-gray-light: #EEEEEE;
+  --shopee-text: #222222;
+  --shopee-text-light: #757575;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  color: var(--foreground);
-  background: var(--background);
+  font-family: 'Helvetica Neue', Roboto, 'Open Sans', sans-serif;
+  background-color: var(--shopee-bg);
+  color: var(--shopee-text);
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Animated gradient backgrounds */
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradient 3s ease infinite;
+/* Shopee Button Styles */
+.btn-shopee {
+  background: linear-gradient(180deg, #f63 0%, var(--shopee-orange) 100%);
+  color: white;
+  border: none;
+  border-radius: 2px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
 }
 
-@keyframes gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+.btn-shopee:hover {
+  opacity: 0.9;
 }
 
-/* Custom scrollbar */
+.btn-shopee:active {
+  opacity: 0.8;
+}
+
+.btn-shopee-outline {
+  background: white;
+  color: var(--shopee-orange);
+  border: 1px solid var(--shopee-orange);
+  border-radius: 2px;
+}
+
+.btn-shopee-outline:hover {
+  background: var(--shopee-orange-light);
+}
+
+/* Shopee Card */
+.shopee-card {
+  background: white;
+  border-radius: 2px;
+  box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.shopee-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* Price styling */
+.shopee-price {
+  color: var(--shopee-orange);
+  font-weight: 500;
+}
+
+.shopee-price-original {
+  color: var(--shopee-text-light);
+  text-decoration: line-through;
+  font-size: 0.85em;
+}
+
+/* Discount badge */
+.shopee-discount-badge {
+  background: var(--shopee-orange);
+  color: white;
+  padding: 2px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 2px;
+}
+
+/* Progress bar (flash sale) */
+.shopee-progress {
+  height: 16px;
+  background: linear-gradient(90deg, #ee4d2d 0%, #ff7337 100%);
+  border-radius: 100px;
+  position: relative;
+  overflow: hidden;
+}
+
+.shopee-progress::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Flash sale timer */
+.shopee-timer {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.shopee-timer-box {
+  background: #222;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 2px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Roboto Mono', monospace;
+}
+
+/* Live badge */
+.shopee-live-badge {
+  background: linear-gradient(90deg, #ee4d2d, #ff6633);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.shopee-live-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 50%;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Coin style */
+.shopee-coin {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #FFB400;
+  font-weight: 600;
+}
+
+.shopee-coin::before {
+  content: '🪙';
+}
+
+/* Voucher style */
+.shopee-voucher {
+  background: linear-gradient(135deg, #fff 0%, #fff5f5 100%);
+  border: 1px dashed var(--shopee-orange);
+  border-left: 4px solid var(--shopee-orange);
+  border-radius: 2px;
+  padding: 12px 16px;
+  position: relative;
+}
+
+.shopee-voucher::before,
+.shopee-voucher::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: var(--shopee-bg);
+  border-radius: 50%;
+  left: -1px;
+}
+
+.shopee-voucher::before {
+  top: -8px;
+  border-bottom: 1px dashed var(--shopee-orange);
+}
+
+.shopee-voucher::after {
+  bottom: -8px;
+  border-top: 1px dashed var(--shopee-orange);
+}
+
+/* Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
   background: #f1f1f1;
-  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
+  background: #ccc;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
+  background: #aaa;
 }
 
-/* Utility classes */
-.text-muted-foreground {
-  color: var(--muted-foreground);
+/* Category grid */
+.category-item:hover .category-icon {
+  transform: scale(1.1);
 }
 
-.text-primary {
-  color: var(--primary);
+/* Product card hover effect */
+.product-card {
+  transition: all 0.2s ease;
 }
 
-.bg-primary {
-  background-color: var(--primary);
+.product-card:hover {
+  border-color: var(--shopee-orange);
 }
 
-.text-primary-foreground {
-  color: var(--primary-foreground);
+.product-card:hover .product-image {
+  transform: scale(1.05);
 }
 
-.bg-accent {
-  background-color: var(--accent);
+/* Animation utilities */
+.animate-bounce-slow {
+  animation: bounce 2s infinite;
 }
 
-/* Smooth transitions */
-* {
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
+@keyframes bounce {
 
-/* Line clamp utility */
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Glass effect */
-.glass {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-}
-
-/* Card hover effects */
-.card-hover {
-  transition: all 0.3s ease;
-}
-
-.card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-}
-
-/* Pulse animation for live indicators */
-@keyframes pulse-ring {
-  0% {
-    transform: scale(0.8);
-    opacity: 1;
-  }
+  0%,
   100% {
-    transform: scale(2);
-    opacity: 0;
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
   }
 }
 
-.pulse-ring::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: currentColor;
-  animation: pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+/* Text utilities */
+.text-shopee {
+  color: var(--shopee-orange);
 }
 
-/* Shimmer loading effect */
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+.bg-shopee {
+  background-color: var(--shopee-orange);
 }
 
-.shimmer {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+.border-shopee {
+  border-color: var(--shopee-orange);
 }
 
-/* Focus ring */
-input:focus,
-button:focus {
-  outline: none;
-  ring: 2px;
-  ring-color: var(--primary);
-}
-
-/* Selection color */
-::selection {
-  background-color: rgba(37, 99, 235, 0.2);
+/* Lucky draw wheel */
+.wheel-segment {
+  clip-path: polygon(50% 50%, 100% 0, 100% 100%);
 }
