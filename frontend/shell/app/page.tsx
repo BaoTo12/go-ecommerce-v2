@@ -6,6 +6,8 @@ import Link from 'next/link';
 export default function HomePage() {
     const [countdown, setCountdown] = useState({ hours: 2, minutes: 45, seconds: 30 });
     const [currentBanner, setCurrentBanner] = useState(0);
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [hoveredCategory, setHoveredCategory] = useState<number | null>(null);
 
     const categories = [
         { icon: '📱', name: 'Điện Thoại & Phụ Kiện' },
@@ -48,10 +50,14 @@ export default function HomePage() {
     ];
 
     const banners = [
-        { bg: '#fb5533', text: '🔥 Flash Sale 12.12 - Giảm đến 50%' },
-        { bg: '#00bfa5', text: '🚚 Miễn phí vận chuyển toàn quốc' },
-        { bg: '#5c6bc0', text: '💳 Hoàn tiền 10% qua ShopeePay' },
+        { bg: 'linear-gradient(135deg, #f53d2d 0%, #ff6533 100%)', text: '🔥 Flash Sale 12.12', subtitle: 'Giảm đến 50%!' },
+        { bg: 'linear-gradient(135deg, #00bfa5 0%, #00897b 100%)', text: '🚚 Miễn Phí Vận Chuyển', subtitle: 'Đơn từ 0Đ' },
+        { bg: 'linear-gradient(135deg, #5c6bc0 0%, #3949ab 100%)', text: '💳 Hoàn Tiền 10%', subtitle: 'Qua ShopeePay' },
     ];
+
+    useEffect(() => {
+        setIsLoaded(true);
+    }, []);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -75,7 +81,7 @@ export default function HomePage() {
     const formatPrice = (price: number) => new Intl.NumberFormat('vi-VN').format(price);
 
     return (
-        <div className="min-h-screen bg-[#f5f5f5]">
+        <div className={`min-h-screen bg-[#f5f5f5] ${isLoaded ? 'animate-fade-in' : 'opacity-0'}`}>
             {/* Banner Carousel */}
             <section className="container mx-auto px-4 pt-4">
                 <div className="grid grid-cols-3 gap-2">
@@ -83,11 +89,12 @@ export default function HomePage() {
                         {banners.map((banner, i) => (
                             <div
                                 key={i}
-                                className={`absolute inset-0 flex items-center justify-center text-white text-3xl font-bold transition-opacity duration-500 ${currentBanner === i ? 'opacity-100' : 'opacity-0'
+                                className={`absolute inset-0 flex flex-col items-center justify-center text-white transition-all duration-700 ${currentBanner === i ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
                                     }`}
-                                style={{ backgroundColor: banner.bg }}
+                                style={{ background: banner.bg }}
                             >
-                                {banner.text}
+                                <span className="text-4xl font-bold mb-2 animate-fade-in-down">{banner.text}</span>
+                                <span className="text-xl opacity-90 animate-fade-in-up">{banner.subtitle}</span>
                             </div>
                         ))}
                         {/* Dots */}
@@ -96,36 +103,46 @@ export default function HomePage() {
                                 <button
                                     key={i}
                                     onClick={() => setCurrentBanner(i)}
-                                    className={`w-2 h-2 rounded-full transition-colors ${currentBanner === i ? 'bg-white' : 'bg-white/50'
+                                    className={`transition-all duration-300 ${currentBanner === i ? 'w-6 h-2 bg-white rounded-full' : 'w-2 h-2 bg-white/50 rounded-full hover:bg-white/80'
                                         }`}
                                 />
                             ))}
                         </div>
                     </div>
                     <div className="flex flex-col gap-2">
-                        <div className="flex-1 bg-[#00bfa5] rounded-sm flex items-center justify-center text-white font-semibold">
-                            🎮 Shopee Live
-                        </div>
-                        <div className="flex-1 bg-[#5c6bc0] rounded-sm flex items-center justify-center text-white font-semibold">
+                        <Link href="/live" className="flex-1 bg-gradient-to-r from-[#00bfa5] to-[#00897b] rounded-sm flex items-center justify-center text-white font-semibold hover-lift hover-shine">
+                            <span className="flex items-center gap-2">
+                                <span className="animate-pulse">🔴</span> Shopee Live
+                            </span>
+                        </Link>
+                        <Link href="/deals/coupons" className="flex-1 bg-gradient-to-r from-[#5c6bc0] to-[#3949ab] rounded-sm flex items-center justify-center text-white font-semibold hover-lift hover-shine">
                             🎁 Voucher Xtra
-                        </div>
+                        </Link>
                     </div>
                 </div>
             </section>
 
             {/* Categories */}
             <section className="container mx-auto px-4 py-4">
-                <div className="bg-white rounded-sm shadow-sm">
+                <div className="bg-white rounded-sm shadow-sm overflow-hidden">
                     <div className="p-4 border-b text-gray-500 font-medium">DANH MỤC</div>
                     <div className="grid grid-cols-5 md:grid-cols-10 lg:grid-cols-15">
-                        {categories.map(cat => (
+                        {categories.map((cat, index) => (
                             <Link
                                 key={cat.name}
                                 href={`/products?category=${encodeURIComponent(cat.name)}`}
-                                className="category-item p-4 text-center"
+                                className="category-item animate-fade-in-up"
+                                style={{ animationDelay: `${index * 30}ms` }}
+                                onMouseEnter={() => setHoveredCategory(index)}
+                                onMouseLeave={() => setHoveredCategory(null)}
                             >
-                                <span className="text-3xl block mb-2">{cat.icon}</span>
-                                <span className="text-xs text-gray-600 line-clamp-2">{cat.name}</span>
+                                <span
+                                    className={`text-3xl mb-2 category-icon transition-transform duration-300 ${hoveredCategory === index ? 'animate-wiggle' : ''
+                                        }`}
+                                >
+                                    {cat.icon}
+                                </span>
+                                <span className="text-xs text-gray-600 text-center line-clamp-2">{cat.name}</span>
                             </Link>
                         ))}
                     </div>
@@ -134,31 +151,36 @@ export default function HomePage() {
 
             {/* Flash Sale */}
             <section className="container mx-auto px-4 py-2">
-                <div className="bg-white rounded-sm shadow-sm">
-                    <div className="flex items-center justify-between p-4 border-b">
+                <div className="bg-white rounded-sm shadow-sm overflow-hidden">
+                    <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-[#fff5f5] to-white">
                         <div className="flex items-center gap-4">
                             <Link href="/deals/flash-sale" className="text-[#ee4d2d] text-xl font-bold flex items-center">
-                                <span className="mr-2 animate-pulse-slow">⚡</span> FLASH SALE
+                                <span className="mr-2 animate-float">⚡</span> FLASH SALE
                             </Link>
                             <div className="flex items-center gap-1">
                                 <div className="timer-box">{String(countdown.hours).padStart(2, '0')}</div>
-                                <span className="text-[#ee4d2d] font-bold">:</span>
+                                <span className="text-[#ee4d2d] font-bold animate-pulse">:</span>
                                 <div className="timer-box">{String(countdown.minutes).padStart(2, '0')}</div>
-                                <span className="text-[#ee4d2d] font-bold">:</span>
+                                <span className="text-[#ee4d2d] font-bold animate-pulse">:</span>
                                 <div className="timer-box">{String(countdown.seconds).padStart(2, '0')}</div>
                             </div>
                         </div>
-                        <Link href="/deals/flash-sale" className="text-[#ee4d2d] text-sm hover:opacity-80 flex items-center gap-1">
+                        <Link href="/deals/flash-sale" className="text-[#ee4d2d] text-sm hover:opacity-80 flex items-center gap-1 group">
                             Xem tất cả
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
                         </Link>
                     </div>
                     <div className="grid grid-cols-6 divide-x">
-                        {flashSaleProducts.map(product => (
-                            <Link key={product.id} href="/deals/flash-sale" className="product-card border-0 rounded-none">
-                                <div className="relative aspect-square bg-gray-50 flex items-center justify-center">
+                        {flashSaleProducts.map((product, index) => (
+                            <Link
+                                key={product.id}
+                                href="/deals/flash-sale"
+                                className="product-card border-0 rounded-none animate-fade-in-up hover-shine"
+                                style={{ animationDelay: `${index * 100}ms` }}
+                            >
+                                <div className="relative aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
                                     <span className="text-5xl product-image">{product.image}</span>
                                     <div className="discount-badge">-{product.discount}%</div>
                                 </div>
@@ -179,46 +201,44 @@ export default function HomePage() {
             {/* Quick Access */}
             <section className="container mx-auto px-4 py-4">
                 <div className="grid grid-cols-4 gap-2">
-                    <Link href="/rewards" className="bg-white rounded-sm p-4 flex items-center gap-3 hover:shadow-md transition-shadow">
-                        <span className="text-3xl">🎮</span>
-                        <div>
-                            <div className="font-semibold text-sm">Shopee Xu</div>
-                            <div className="text-xs text-gray-500">Đổi xu lấy quà</div>
-                        </div>
-                    </Link>
-                    <Link href="/deals/coupons" className="bg-white rounded-sm p-4 flex items-center gap-3 hover:shadow-md transition-shadow">
-                        <span className="text-3xl">🎟️</span>
-                        <div>
-                            <div className="font-semibold text-sm">Mã Giảm Giá</div>
-                            <div className="text-xs text-gray-500">Săn voucher hot</div>
-                        </div>
-                    </Link>
-                    <Link href="/live" className="bg-white rounded-sm p-4 flex items-center gap-3 hover:shadow-md transition-shadow">
-                        <span className="text-3xl flex items-center gap-1">🔴 <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" /></span>
-                        <div>
-                            <div className="font-semibold text-sm">Shopee Live</div>
-                            <div className="text-xs text-gray-500">Xem & mua sắm</div>
-                        </div>
-                    </Link>
-                    <Link href="/products" className="bg-white rounded-sm p-4 flex items-center gap-3 hover:shadow-md transition-shadow">
-                        <span className="text-3xl">🛍️</span>
-                        <div>
-                            <div className="font-semibold text-sm">Hàng Chính Hãng</div>
-                            <div className="text-xs text-gray-500">100% authentic</div>
-                        </div>
-                    </Link>
+                    {[
+                        { href: '/rewards', icon: '🎮', title: 'Shopee Xu', desc: 'Đổi xu lấy quà', gradient: 'from-yellow-400 to-orange-500' },
+                        { href: '/deals/coupons', icon: '🎟️', title: 'Mã Giảm Giá', desc: 'Săn voucher hot', gradient: 'from-purple-500 to-pink-500' },
+                        { href: '/live', icon: '🔴', title: 'Shopee Live', desc: 'Xem & mua sắm', gradient: 'from-red-500 to-rose-500', live: true },
+                        { href: '/products', icon: '🛍️', title: 'Hàng Chính Hãng', desc: '100% authentic', gradient: 'from-blue-500 to-cyan-500' },
+                    ].map((item, index) => (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            className={`bg-white rounded-sm p-4 flex items-center gap-3 hover-lift hover-shine animate-fade-in-up`}
+                            style={{ animationDelay: `${index * 100}ms` }}
+                        >
+                            <span className={`text-3xl ${item.live ? 'animate-pulse' : ''}`}>
+                                {item.icon}
+                            </span>
+                            <div>
+                                <div className="font-semibold text-sm">{item.title}</div>
+                                <div className="text-xs text-gray-500">{item.desc}</div>
+                            </div>
+                        </Link>
+                    ))}
                 </div>
             </section>
 
             {/* Recommendations */}
             <section className="container mx-auto px-4 py-4">
-                <div className="bg-white rounded-sm shadow-sm">
-                    <div className="p-4 border-b text-center">
+                <div className="bg-white rounded-sm shadow-sm overflow-hidden">
+                    <div className="p-4 border-b text-center sticky top-[120px] bg-white z-10">
                         <span className="text-[#ee4d2d] text-lg font-bold">GỢI Ý HÔM NAY</span>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-6 gap-[1px] bg-gray-100">
-                        {recommendedProducts.map(product => (
-                            <Link key={product.id} href={`/products/${product.id}`} className="product-card bg-white">
+                    <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-6 gap-[2px] bg-gray-100 p-[2px]">
+                        {recommendedProducts.map((product, index) => (
+                            <Link
+                                key={product.id}
+                                href={`/products/${product.id}`}
+                                className="product-card bg-white animate-fade-in-up"
+                                style={{ animationDelay: `${index * 50}ms` }}
+                            >
                                 <div className="relative aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
                                     <span className="text-6xl product-image">{product.image}</span>
                                     <div className="absolute top-0 left-0 bg-[#ee4d2d] text-white text-[10px] px-1 py-0.5">
@@ -235,14 +255,17 @@ export default function HomePage() {
                                         <span className="star-rating">★</span>
                                         <span>{product.rating}</span>
                                         <span className="mx-1">|</span>
-                                        <span>{product.location}</span>
+                                        <span className="truncate">{product.location}</span>
                                     </div>
                                 </div>
                             </Link>
                         ))}
                     </div>
                     <div className="p-4 text-center">
-                        <Link href="/products" className="inline-block px-10 py-2 border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors text-sm">
+                        <Link
+                            href="/products"
+                            className="inline-block px-10 py-2 border border-gray-300 text-gray-600 hover:bg-gray-50 transition-all hover:border-[#ee4d2d] hover:text-[#ee4d2d] text-sm"
+                        >
                             Xem Thêm
                         </Link>
                     </div>
