@@ -11,6 +11,8 @@ interface CartItem {
     originalPrice: number;
     quantity: number;
     image: string;
+    shop: string;
+    variant?: string;
     selected: boolean;
 }
 
@@ -23,17 +25,16 @@ export default function CartPage() {
 
     useEffect(() => {
         setItems([
-            { id: 'p1', name: 'iPhone 15 Pro Max 256GB', price: 29990000, originalPrice: 34990000, quantity: 1, image: '📱', selected: true },
-            { id: 'p6', name: 'Son Dưỡng Môi Dior', price: 950000, originalPrice: 1200000, quantity: 2, image: '💄', selected: true },
-            { id: 'p4', name: 'Áo Hoodie Unisex', price: 299000, originalPrice: 450000, quantity: 1, image: '👕', selected: false },
+            { id: 'p1', name: 'iPhone 15 Pro Max 256GB Titan Xanh Chính Hãng VN/A', price: 29990000, originalPrice: 34990000, quantity: 1, image: '📱', shop: 'Apple Store Official', variant: 'Xanh Titan', selected: true },
+            { id: 'p6', name: 'Son Dưỡng Môi Dior Addict Lip Glow', price: 950000, originalPrice: 1200000, quantity: 2, image: '💄', shop: 'Dior Beauty Official', variant: '001 Pink', selected: true },
+            { id: 'p4', name: 'Áo Hoodie Unisex Form Rộng Nỉ Cotton', price: 199000, originalPrice: 350000, quantity: 1, image: '👕', shop: 'Fashion Store', variant: 'Đen - L', selected: false },
         ]);
     }, []);
 
     const updateQuantity = (id: string, delta: number) => {
         setItems(prev => prev.map(item => {
             if (item.id === id) {
-                const newQty = Math.max(1, item.quantity + delta);
-                return { ...item, quantity: newQty };
+                return { ...item, quantity: Math.max(1, item.quantity + delta) };
             }
             return item;
         }));
@@ -54,20 +55,16 @@ export default function CartPage() {
     };
 
     const applyVoucher = () => {
-        if (voucher.toUpperCase() === 'GIẢM50K') {
+        if (voucher.toUpperCase() === 'GIAM50K') {
             setDiscount(50000);
             setVoucherApplied(true);
-        } else if (voucher.toUpperCase() === 'SALE10') {
-            setDiscount(subtotal * 0.1);
-            setVoucherApplied(true);
         } else {
-            alert('Mã giảm giá không hợp lệ!');
+            alert('Mã giảm giá không hợp lệ');
         }
     };
 
     const selectedItems = items.filter(item => item.selected);
     const subtotal = selectedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const totalSavings = selectedItems.reduce((sum, item) => sum + (item.originalPrice - item.price) * item.quantity, 0);
     const total = subtotal - discount;
 
     const formatPrice = (price: number) => new Intl.NumberFormat('vi-VN').format(price);
@@ -78,193 +75,206 @@ export default function CartPage() {
         }
     };
 
+    // Group items by shop
+    const groupedItems = items.reduce((acc, item) => {
+        if (!acc[item.shop]) acc[item.shop] = [];
+        acc[item.shop].push(item);
+        return acc;
+    }, {} as Record<string, CartItem[]>);
+
     return (
-        <div className="min-h-screen bg-[#F5F5F5] animate-fade-in">
+        <div className="min-h-screen bg-[#f5f5f5]">
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#EE4D2D] to-[#FF6633] py-6">
-                <div className="container mx-auto px-4">
-                    <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                        <span>🛒</span> Giỏ Hàng
-                        <span className="text-white/70 text-lg font-normal">({items.length} sản phẩm)</span>
-                    </h1>
+            <div className="bg-white border-b sticky top-0 z-30">
+                <div className="container mx-auto px-4 py-4">
+                    <div className="flex items-center gap-3">
+                        <Link href="/" className="text-2xl font-bold text-[#ee4d2d]">Shopee</Link>
+                        <span className="text-gray-300">|</span>
+                        <h1 className="text-xl text-gray-700">Giỏ Hàng</h1>
+                    </div>
                 </div>
             </div>
 
-            <div className="container mx-auto px-4 py-6">
+            <div className="container mx-auto px-4 py-4">
                 {items.length === 0 ? (
-                    <div className="bg-white rounded-2xl p-12 text-center">
-                        <div className="text-8xl mb-4">🛒</div>
-                        <p className="text-gray-500 mb-4">Giỏ hàng của bạn đang trống</p>
-                        <Link href="/products" className="inline-block bg-gradient-to-r from-[#EE4D2D] to-[#FF6633] text-white px-8 py-3 rounded-full font-bold hover:opacity-90">
-                            Mua sắm ngay
+                    <div className="bg-white rounded-sm p-12 text-center">
+                        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                        </div>
+                        <p className="text-gray-500 mb-4">Giỏ hàng của bạn còn trống</p>
+                        <Link href="/products" className="inline-block px-8 py-2 bg-[#ee4d2d] text-white hover:opacity-90">
+                            Mua Sắm Ngay
                         </Link>
                     </div>
                 ) : (
-                    <div className="grid lg:grid-cols-3 gap-6">
-                        {/* Cart Items */}
-                        <div className="lg:col-span-2 space-y-4">
-                            {/* Select All */}
-                            <div className="bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+                    <>
+                        {/* Cart Header */}
+                        <div className="bg-white rounded-sm shadow-sm p-4 mb-3 hidden md:grid grid-cols-12 gap-4 text-sm text-gray-500">
+                            <div className="col-span-5 flex items-center gap-3">
                                 <input
                                     type="checkbox"
                                     checked={items.every(item => item.selected)}
                                     onChange={(e) => selectAll(e.target.checked)}
-                                    className="w-5 h-5 accent-[#EE4D2D] rounded"
+                                    className="w-4 h-4 accent-[#ee4d2d]"
                                 />
-                                <span className="font-semibold">Chọn tất cả ({items.length})</span>
+                                <span>Sản Phẩm</span>
                             </div>
+                            <div className="col-span-2 text-center">Đơn Giá</div>
+                            <div className="col-span-2 text-center">Số Lượng</div>
+                            <div className="col-span-2 text-center">Số Tiền</div>
+                            <div className="col-span-1 text-center">Thao Tác</div>
+                        </div>
 
-                            {/* Items */}
-                            {items.map((item, index) => (
-                                <div
-                                    key={item.id}
-                                    className="bg-white rounded-2xl p-4 shadow-sm animate-slide-up"
-                                    style={{ animationDelay: `${index * 50}ms` }}
-                                >
-                                    <div className="flex items-start gap-4">
-                                        <input
-                                            type="checkbox"
-                                            checked={item.selected}
-                                            onChange={() => toggleSelect(item.id)}
-                                            className="w-5 h-5 accent-[#EE4D2D] mt-4 rounded"
-                                        />
+                        {/* Cart Items by Shop */}
+                        {Object.entries(groupedItems).map(([shop, shopItems]) => (
+                            <div key={shop} className="bg-white rounded-sm shadow-sm mb-3">
+                                {/* Shop Header */}
+                                <div className="p-4 border-b flex items-center gap-3">
+                                    <input
+                                        type="checkbox"
+                                        checked={shopItems.every(item => item.selected)}
+                                        onChange={() => {
+                                            const allSelected = shopItems.every(item => item.selected);
+                                            setItems(prev => prev.map(item =>
+                                                item.shop === shop ? { ...item, selected: !allSelected } : item
+                                            ));
+                                        }}
+                                        className="w-4 h-4 accent-[#ee4d2d]"
+                                    />
+                                    <span className="bg-[#ee4d2d] text-white text-[10px] px-1">Mall</span>
+                                    <span className="font-medium text-sm">{shop}</span>
+                                </div>
 
-                                        {/* Image */}
-                                        <Link href={`/products/${item.id}`} className="w-24 h-24 bg-gray-100 rounded-xl flex items-center justify-center text-5xl flex-shrink-0 hover:scale-105 transition-transform">
-                                            {item.image}
-                                        </Link>
-
-                                        {/* Info */}
-                                        <div className="flex-1">
-                                            <Link href={`/products/${item.id}`}>
-                                                <h3 className="font-semibold hover:text-[#EE4D2D] transition-colors">{item.name}</h3>
+                                {/* Items */}
+                                {shopItems.map(item => (
+                                    <div key={item.id} className="p-4 border-b last:border-0 grid grid-cols-12 gap-4 items-center">
+                                        <div className="col-span-12 md:col-span-5 flex items-center gap-3">
+                                            <input
+                                                type="checkbox"
+                                                checked={item.selected}
+                                                onChange={() => toggleSelect(item.id)}
+                                                className="w-4 h-4 accent-[#ee4d2d]"
+                                            />
+                                            <Link href={`/products/${item.id}`} className="w-20 h-20 bg-gray-100 rounded-sm flex items-center justify-center text-4xl flex-shrink-0 hover:opacity-80">
+                                                {item.image}
                                             </Link>
-                                            <div className="flex items-baseline gap-2 my-2">
-                                                <span className="text-[#EE4D2D] font-bold text-lg">₫{formatPrice(item.price)}</span>
-                                                <span className="text-gray-400 text-sm line-through">₫{formatPrice(item.originalPrice)}</span>
-                                            </div>
-
-                                            {/* Quantity */}
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex items-center border-2 rounded-full overflow-hidden">
-                                                    <button
-                                                        onClick={() => updateQuantity(item.id, -1)}
-                                                        className="px-4 py-2 hover:bg-gray-100 transition-colors"
-                                                        disabled={item.quantity <= 1}
-                                                    >
-                                                        −
-                                                    </button>
-                                                    <span className="px-4 py-2 border-x-2 font-medium">{item.quantity}</span>
-                                                    <button
-                                                        onClick={() => updateQuantity(item.id, 1)}
-                                                        className="px-4 py-2 hover:bg-gray-100 transition-colors"
-                                                    >
-                                                        +
-                                                    </button>
-                                                </div>
-                                                <span className="text-sm text-gray-500">
-                                                    Thành tiền: <span className="text-[#EE4D2D] font-bold">₫{formatPrice(item.price * item.quantity)}</span>
-                                                </span>
+                                            <div className="flex-1 min-w-0">
+                                                <Link href={`/products/${item.id}`} className="text-sm line-clamp-2 hover:text-[#ee4d2d]">
+                                                    {item.name}
+                                                </Link>
+                                                {item.variant && (
+                                                    <p className="text-xs text-gray-400 mt-1">Phân loại: {item.variant}</p>
+                                                )}
                                             </div>
                                         </div>
 
-                                        {/* Remove */}
-                                        <button
-                                            onClick={() => removeItem(item.id)}
-                                            className="text-gray-400 hover:text-red-500 text-xl p-2 hover:bg-red-50 rounded-full transition-all"
-                                        >
-                                            🗑️
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                        <div className="col-span-4 md:col-span-2 text-center">
+                                            <span className="text-gray-400 line-through text-xs block">₫{formatPrice(item.originalPrice)}</span>
+                                            <span className="text-sm">₫{formatPrice(item.price)}</span>
+                                        </div>
 
-                        {/* Summary */}
-                        <div className="space-y-4">
-                            {/* Voucher */}
-                            <div className="bg-white rounded-2xl p-5 shadow-sm">
-                                <h3 className="font-bold mb-3 flex items-center gap-2">🎟️ Mã giảm giá</h3>
-                                <div className="flex gap-2">
+                                        <div className="col-span-4 md:col-span-2 flex justify-center">
+                                            <div className="flex items-center">
+                                                <button
+                                                    onClick={() => updateQuantity(item.id, -1)}
+                                                    className="w-7 h-7 border flex items-center justify-center text-lg hover:bg-gray-50"
+                                                >
+                                                    −
+                                                </button>
+                                                <span className="w-10 h-7 border-y flex items-center justify-center text-sm">{item.quantity}</span>
+                                                <button
+                                                    onClick={() => updateQuantity(item.id, 1)}
+                                                    className="w-7 h-7 border flex items-center justify-center text-lg hover:bg-gray-50"
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="col-span-2 md:col-span-2 text-center">
+                                            <span className="text-[#ee4d2d] text-sm">₫{formatPrice(item.price * item.quantity)}</span>
+                                        </div>
+
+                                        <div className="col-span-2 md:col-span-1 text-center">
+                                            <button
+                                                onClick={() => removeItem(item.id)}
+                                                className="text-gray-500 hover:text-[#ee4d2d] text-sm"
+                                            >
+                                                Xóa
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
+
+                        {/* Voucher */}
+                        <div className="bg-white rounded-sm shadow-sm p-4 mb-3">
+                            <div className="flex items-center gap-4">
+                                <span className="text-[#ee4d2d]">🎟️</span>
+                                <span className="text-sm">Shopee Voucher</span>
+                                <div className="flex-1 flex gap-2">
                                     <input
                                         type="text"
                                         value={voucher}
                                         onChange={(e) => setVoucher(e.target.value)}
-                                        placeholder="Nhập mã..."
-                                        className="flex-1 border-2 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-[#EE4D2D]"
+                                        placeholder="Nhập mã voucher"
+                                        className="border px-3 py-1.5 text-sm outline-none focus:border-[#ee4d2d] flex-1 max-w-xs"
                                         disabled={voucherApplied}
                                     />
                                     <button
                                         onClick={applyVoucher}
                                         disabled={voucherApplied}
-                                        className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${voucherApplied
-                                                ? 'bg-green-100 text-green-600'
-                                                : 'bg-gradient-to-r from-[#EE4D2D] to-[#FF6633] text-white hover:opacity-90'
+                                        className={`px-4 py-1.5 text-sm transition-colors ${voucherApplied
+                                                ? 'bg-gray-100 text-gray-400'
+                                                : 'bg-[#ee4d2d] text-white hover:opacity-90'
                                             }`}
                                     >
-                                        {voucherApplied ? '✓' : 'Áp dụng'}
+                                        {voucherApplied ? 'Đã áp dụng' : 'Áp dụng'}
                                     </button>
-                                </div>
-                                {voucherApplied && (
-                                    <p className="text-green-600 text-sm mt-2">✓ Giảm ₫{formatPrice(discount)}</p>
-                                )}
-                            </div>
-
-                            {/* Total */}
-                            <div className="bg-white rounded-2xl p-5 shadow-sm">
-                                <h3 className="font-bold mb-4 flex items-center gap-2">📦 Tổng đơn hàng</h3>
-                                <div className="space-y-3 text-sm">
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500">Tạm tính ({selectedItems.length} sản phẩm)</span>
-                                        <span className="font-medium">₫{formatPrice(subtotal)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-green-600">
-                                        <span>Tiết kiệm</span>
-                                        <span>-₫{formatPrice(totalSavings)}</span>
-                                    </div>
-                                    {discount > 0 && (
-                                        <div className="flex justify-between text-green-600">
-                                            <span>Voucher</span>
-                                            <span>-₫{formatPrice(discount)}</span>
-                                        </div>
-                                    )}
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500">Vận chuyển</span>
-                                        <span className="text-green-600 font-medium">Miễn phí</span>
-                                    </div>
-                                    <div className="pt-4 mt-4 border-t-2 flex justify-between font-bold text-xl">
-                                        <span>Tổng cộng</span>
-                                        <span className="text-[#EE4D2D]">₫{formatPrice(total)}</span>
-                                    </div>
-                                </div>
-
-                                <button
-                                    onClick={proceedToCheckout}
-                                    disabled={selectedItems.length === 0}
-                                    className={`w-full mt-6 py-4 rounded-full font-bold text-lg transition-all ${selectedItems.length > 0
-                                            ? 'bg-gradient-to-r from-[#EE4D2D] to-[#FF6633] text-white hover:opacity-90 hover:shadow-lg'
-                                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                        }`}
-                                >
-                                    Thanh toán ({selectedItems.length})
-                                </button>
-                            </div>
-
-                            {/* Promo */}
-                            <div className="bg-gradient-to-r from-[#EE4D2D] to-[#FF6633] rounded-2xl p-4 text-white text-center">
-                                <p className="text-sm">Dùng mã <span className="font-mono font-bold bg-white/20 px-2 py-1 rounded">GIẢM50K</span> giảm 50K!</p>
-                            </div>
-
-                            {/* Trust badges */}
-                            <div className="bg-white rounded-2xl p-4 shadow-sm">
-                                <div className="flex items-center justify-center gap-6 text-sm text-gray-500">
-                                    <span className="flex items-center gap-1">🔒 An toàn</span>
-                                    <span className="flex items-center gap-1">🚚 Freeship</span>
-                                    <span className="flex items-center gap-1">✅ Chính hãng</span>
                                 </div>
                             </div>
                         </div>
-                    </div>
+
+                        {/* Footer */}
+                        <div className="bg-white rounded-sm shadow-sm p-4 sticky bottom-0">
+                            <div className="flex items-center justify-between flex-wrap gap-4">
+                                <div className="flex items-center gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={items.every(item => item.selected)}
+                                            onChange={(e) => selectAll(e.target.checked)}
+                                            className="w-4 h-4 accent-[#ee4d2d]"
+                                        />
+                                        <span className="text-sm">Chọn Tất Cả ({items.length})</span>
+                                    </label>
+                                    <button className="text-sm text-gray-500 hover:text-[#ee4d2d]">Xóa</button>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <div className="text-right">
+                                        <span className="text-sm text-gray-500">Tổng thanh toán ({selectedItems.length} Sản phẩm): </span>
+                                        <span className="text-2xl text-[#ee4d2d] font-medium">₫{formatPrice(total)}</span>
+                                        {discount > 0 && (
+                                            <div className="text-xs text-gray-400">Tiết kiệm: ₫{formatPrice(discount)}</div>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={proceedToCheckout}
+                                        disabled={selectedItems.length === 0}
+                                        className={`px-12 py-3 text-sm transition-colors ${selectedItems.length > 0
+                                                ? 'bg-[#ee4d2d] text-white hover:opacity-90'
+                                                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                            }`}
+                                    >
+                                        Mua Hàng
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </>
                 )}
             </div>
         </div>
