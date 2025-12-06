@@ -12,11 +12,6 @@
   --shopee-blue: #5886C5;
   --shopee-yellow: #FFBF00;
   --shopee-bg: #F5F5F5;
-  --shopee-white: #FFFFFF;
-  --shopee-gray: #757575;
-  --shopee-gray-light: #EEEEEE;
-  --shopee-text: #222222;
-  --shopee-text-light: #757575;
 }
 
 * {
@@ -25,270 +20,400 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  font-family: 'Helvetica Neue', Roboto, 'Open Sans', sans-serif;
+  font-family: 'Helvetica Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--shopee-bg);
-  color: var(--shopee-text);
+  color: #222;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Shopee Button Styles */
-.btn-shopee {
-  background: linear-gradient(180deg, #f63 0%, var(--shopee-orange) 100%);
-  color: white;
-  border: none;
-  border-radius: 2px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: opacity 0.2s;
+/* ==================== BUTTON STYLES ==================== */
+.btn-primary {
+  @apply bg-gradient-to-r from-[#EE4D2D] to-[#FF6633] text-white font-semibold rounded-sm;
+  @apply hover:shadow-lg hover:shadow-orange-500/30 transition-all duration-300;
+  @apply active:scale-95 transform;
 }
 
-.btn-shopee:hover {
-  opacity: 0.9;
+.btn-primary:hover {
+  background: linear-gradient(135deg, #FF6633 0%, #EE4D2D 100%);
 }
 
-.btn-shopee:active {
-  opacity: 0.8;
+.btn-outline {
+  @apply border-2 border-[#EE4D2D] text-[#EE4D2D] font-semibold rounded-sm bg-white;
+  @apply hover:bg-[#FFEEE8] transition-all duration-300;
 }
 
-.btn-shopee-outline {
-  background: white;
-  color: var(--shopee-orange);
-  border: 1px solid var(--shopee-orange);
-  border-radius: 2px;
+/* ==================== CARD STYLES ==================== */
+.card {
+  @apply bg-white rounded-lg shadow-sm overflow-hidden;
+  @apply transition-all duration-300 ease-out;
 }
 
-.btn-shopee-outline:hover {
-  background: var(--shopee-orange-light);
+.card:hover {
+  @apply shadow-xl -translate-y-1;
 }
 
-/* Shopee Card */
-.shopee-card {
-  background: white;
-  border-radius: 2px;
-  box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s, box-shadow 0.2s;
+.card-product {
+  @apply bg-white rounded-sm overflow-hidden border border-transparent;
+  @apply transition-all duration-300 ease-out cursor-pointer;
 }
 
-.shopee-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+.card-product:hover {
+  @apply border-[#EE4D2D] shadow-lg shadow-orange-500/10;
+  transform: translateY(-4px);
 }
 
-/* Price styling */
-.shopee-price {
-  color: var(--shopee-orange);
-  font-weight: 500;
+.card-product:hover .product-image {
+  transform: scale(1.1);
 }
 
-.shopee-price-original {
-  color: var(--shopee-text-light);
-  text-decoration: line-through;
-  font-size: 0.85em;
+.product-image {
+  @apply transition-transform duration-500 ease-out;
 }
 
-/* Discount badge */
-.shopee-discount-badge {
-  background: var(--shopee-orange);
-  color: white;
-  padding: 2px 4px;
-  font-size: 10px;
-  font-weight: 600;
-  border-radius: 2px;
+/* ==================== GRADIENT BACKGROUNDS ==================== */
+.gradient-shopee {
+  background: linear-gradient(135deg, #EE4D2D 0%, #FF6633 50%, #FFAB91 100%);
 }
 
-/* Progress bar (flash sale) */
-.shopee-progress {
-  height: 16px;
-  background: linear-gradient(90deg, #ee4d2d 0%, #ff7337 100%);
-  border-radius: 100px;
-  position: relative;
-  overflow: hidden;
+.gradient-gold {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF8C00 100%);
 }
 
-.shopee-progress::after {
+.gradient-purple {
+  background: linear-gradient(135deg, #9B59B6 0%, #8E44AD 50%, #6C3483 100%);
+}
+
+.gradient-blue {
+  background: linear-gradient(135deg, #3498DB 0%, #2980B9 50%, #1A5276 100%);
+}
+
+.gradient-dark {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+}
+
+.gradient-mesh {
+  background: 
+    radial-gradient(at 40% 20%, rgba(238, 77, 45, 0.3) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, rgba(255, 171, 145, 0.3) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, rgba(255, 102, 51, 0.2) 0px, transparent 50%),
+    linear-gradient(135deg, #EE4D2D, #FF6633);
+}
+
+/* ==================== ANIMATIONS ==================== */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(238, 77, 45, 0.4); }
+  50% { box-shadow: 0 0 25px rgba(238, 77, 45, 0.8); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes bounce-in {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slide-in-right {
+  0% { transform: translateX(100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-in-up {
+  0% { transform: translateY(30px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes rotate-360 {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes confetti {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+}
+
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+.animate-shimmer { 
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite; 
+}
+.animate-bounce-in { animation: bounce-in 0.5s ease-out; }
+.animate-slide-in-right { animation: slide-in-right 0.4s ease-out; }
+.animate-slide-in-up { animation: slide-in-up 0.4s ease-out; }
+.animate-rotate { animation: rotate-360 1s linear infinite; }
+
+/* ==================== SPECIAL EFFECTS ==================== */
+.glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.neon-orange {
+  box-shadow: 
+    0 0 5px #EE4D2D,
+    0 0 10px #EE4D2D,
+    0 0 20px #EE4D2D,
+    0 0 40px #FF6633;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #EE4D2D 0%, #FFD700 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.border-glow {
+  border: 2px solid #EE4D2D;
+  box-shadow: 0 0 10px rgba(238, 77, 45, 0.5);
+}
+
+/* ==================== FLASH SALE PROGRESS BAR ==================== */
+.flash-sale-progress {
+  @apply h-4 rounded-full overflow-hidden relative;
+  background: linear-gradient(90deg, #FFE0DB 0%, #FFD5CD 100%);
+}
+
+.flash-sale-progress-bar {
+  @apply h-full rounded-full relative;
+  background: linear-gradient(90deg, #EE4D2D 0%, #FF7337 100%);
+}
+
+.flash-sale-progress-bar::after {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
   animation: shimmer 2s infinite;
+  background-size: 200% 100%;
 }
 
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-
-  100% {
-    transform: translateX(100%);
-  }
+/* ==================== COUNTDOWN TIMER ==================== */
+.countdown-box {
+  @apply bg-[#222] text-white px-3 py-2 rounded font-mono font-bold text-lg;
+  @apply shadow-lg shadow-black/30;
+  min-width: 48px;
+  text-align: center;
 }
 
-/* Flash sale timer */
-.shopee-timer {
-  display: inline-flex;
-  gap: 4px;
+.countdown-box.urgent {
+  @apply bg-[#EE4D2D];
+  animation: pulse-glow 1s infinite;
 }
 
-.shopee-timer-box {
-  background: #222;
-  color: white;
-  padding: 2px 6px;
-  border-radius: 2px;
-  font-size: 14px;
-  font-weight: 700;
-  font-family: 'Roboto Mono', monospace;
+/* ==================== LIVE BADGE ==================== */
+.live-badge {
+  @apply inline-flex items-center gap-2 px-3 py-1 rounded text-white text-sm font-bold;
+  background: linear-gradient(135deg, #EE4D2D 0%, #FF6633 100%);
 }
 
-/* Live badge */
-.shopee-live-badge {
-  background: linear-gradient(90deg, #ee4d2d, #ff6633);
-  color: white;
-  padding: 2px 8px;
-  border-radius: 2px;
-  font-size: 12px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.shopee-live-badge::before {
+.live-badge::before {
   content: '';
-  width: 6px;
-  height: 6px;
-  background: white;
-  border-radius: 50%;
+  @apply w-2 h-2 bg-white rounded-full;
   animation: pulse 1s infinite;
 }
 
-@keyframes pulse {
-
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.5;
-  }
+/* ==================== HOVER EFFECTS ==================== */
+.hover-lift {
+  @apply transition-all duration-300;
 }
 
-/* Coin style */
-.shopee-coin {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: #FFB400;
-  font-weight: 600;
+.hover-lift:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
 }
 
-.shopee-coin::before {
-  content: '🪙';
+.hover-grow {
+  @apply transition-transform duration-300;
 }
 
-/* Voucher style */
-.shopee-voucher {
-  background: linear-gradient(135deg, #fff 0%, #fff5f5 100%);
-  border: 1px dashed var(--shopee-orange);
-  border-left: 4px solid var(--shopee-orange);
-  border-radius: 2px;
-  padding: 12px 16px;
-  position: relative;
+.hover-grow:hover {
+  transform: scale(1.05);
 }
 
-.shopee-voucher::before,
-.shopee-voucher::after {
+.hover-shine {
+  @apply relative overflow-hidden;
+}
+
+.hover-shine::after {
   content: '';
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  background: var(--shopee-bg);
-  border-radius: 50%;
-  left: -1px;
+  @apply absolute inset-0;
+  background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.3) 50%, transparent 60%);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
 }
 
-.shopee-voucher::before {
-  top: -8px;
-  border-bottom: 1px dashed var(--shopee-orange);
+.hover-shine:hover::after {
+  transform: translateX(100%);
 }
 
-.shopee-voucher::after {
-  bottom: -8px;
-  border-top: 1px dashed var(--shopee-orange);
+/* ==================== TOOLTIPS ==================== */
+.tooltip {
+  @apply relative;
 }
 
-/* Scrollbar */
+.tooltip::after {
+  content: attr(data-tooltip);
+  @apply absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1;
+  @apply bg-gray-800 text-white text-xs rounded whitespace-nowrap;
+  @apply opacity-0 pointer-events-none transition-opacity duration-200;
+}
+
+.tooltip:hover::after {
+  @apply opacity-100;
+}
+
+/* ==================== SKELETON LOADING ==================== */
+.skeleton {
+  @apply relative overflow-hidden bg-gray-200 rounded;
+}
+
+.skeleton::after {
+  content: '';
+  @apply absolute inset-0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%);
+  animation: shimmer 1.5s infinite;
+  background-size: 200% 100%;
+}
+
+/* ==================== CUSTOM SCROLLBAR ==================== */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
   background: #f1f1f1;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 3px;
+  background: linear-gradient(180deg, #EE4D2D 0%, #FF6633 100%);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #aaa;
+  background: linear-gradient(180deg, #D73211 0%, #EE4D2D 100%);
 }
 
-/* Category grid */
-.category-item:hover .category-icon {
-  transform: scale(1.1);
+/* ==================== SELECTION ==================== */
+::selection {
+  background-color: rgba(238, 77, 45, 0.3);
 }
 
-/* Product card hover effect */
-.product-card {
-  transition: all 0.2s ease;
+/* ==================== LINE CLAMP ==================== */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.product-card:hover {
-  border-color: var(--shopee-orange);
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.product-card:hover .product-image {
-  transform: scale(1.05);
+/* ==================== BADGE STYLES ==================== */
+.badge-new {
+  @apply px-2 py-0.5 text-xs font-bold rounded;
+  background: linear-gradient(135deg, #00BFA5 0%, #00897B 100%);
+  color: white;
 }
 
-/* Animation utilities */
-.animate-bounce-slow {
-  animation: bounce 2s infinite;
+.badge-hot {
+  @apply px-2 py-0.5 text-xs font-bold rounded;
+  background: linear-gradient(135deg, #FF5722 0%, #E64A19 100%);
+  color: white;
+  animation: pulse 2s infinite;
 }
 
-@keyframes bounce {
-
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-10px);
-  }
+.badge-sale {
+  @apply px-2 py-0.5 text-xs font-bold;
+  background: linear-gradient(135deg, #FFEB3B 0%, #FFC107 100%);
+  color: #EE4D2D;
 }
 
-/* Text utilities */
-.text-shopee {
-  color: var(--shopee-orange);
+/* ==================== COIN ANIMATION ==================== */
+.coin-flip {
+  animation: coinFlip 0.6s ease-out;
 }
 
-.bg-shopee {
-  background-color: var(--shopee-orange);
+@keyframes coinFlip {
+  0% { transform: rotateY(0deg) scale(1); }
+  50% { transform: rotateY(180deg) scale(1.2); }
+  100% { transform: rotateY(360deg) scale(1); }
 }
 
-.border-shopee {
-  border-color: var(--shopee-orange);
+/* ==================== RIPPLE EFFECT ==================== */
+.ripple {
+  @apply relative overflow-hidden;
 }
 
-/* Lucky draw wheel */
-.wheel-segment {
-  clip-path: polygon(50% 50%, 100% 0, 100% 100%);
+.ripple::after {
+  content: '';
+  @apply absolute inset-0 bg-white/30 rounded-full;
+  transform: scale(0);
+  opacity: 0;
+}
+
+.ripple:active::after {
+  animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+  0% { transform: scale(0); opacity: 1; }
+  100% { transform: scale(4); opacity: 0; }
+}
+
+/* ==================== FOCUS STYLES ==================== */
+input:focus, button:focus, select:focus {
+  @apply outline-none ring-2 ring-[#EE4D2D] ring-opacity-50;
+}
+
+/* ==================== NOTIFICATION TOAST ==================== */
+.toast {
+  @apply fixed top-24 right-4 z-50 px-6 py-4 rounded-lg shadow-xl;
+  @apply animate-slide-in-right;
+}
+
+.toast-success {
+  @apply bg-gradient-to-r from-green-500 to-emerald-500 text-white;
+}
+
+.toast-error {
+  @apply bg-gradient-to-r from-red-500 to-pink-500 text-white;
+}
+
+.toast-info {
+  @apply bg-gradient-to-r from-blue-500 to-indigo-500 text-white;
 }
