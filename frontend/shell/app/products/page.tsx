@@ -1,89 +1,64 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
+import { productService, Product } from '@/services/productService';
 
-interface Product {
-    id: string;
-    name: string;
-    price: number;
-    originalPrice: number;
-    sold: string;
-    rating: number;
-    image: string;
-    category: string;
-    location: string;
-    isOfficial?: boolean;
-    isFavorite?: boolean;
-    freeShip?: boolean;
-}
+function ProductsContent() {
+    const searchParams = useSearchParams();
+    const categoryParam = searchParams.get('category');
+    const searchParam = searchParams.get('search');
 
-export default function ProductsPage() {
     const [products, setProducts] = useState<Product[]>([]);
-    const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-    const [selectedCategory, setSelectedCategory] = useState('Tất cả');
+    const [selectedCategory, setSelectedCategory] = useState(categoryParam || 'Tất cả');
     const [sortBy, setSortBy] = useState('popular');
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, setSearchQuery] = useState(searchParam || '');
     const [priceRange, setPriceRange] = useState({ min: '', max: '' });
     const [notification, setNotification] = useState<string | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [addingToCart, setAddingToCart] = useState<string | null>(null);
+    const [totalProducts, setTotalProducts] = useState(0);
 
     const categories = ['Tất cả', 'Điện thoại', 'Laptop', 'Thời trang', 'Làm đẹp', 'Nhà cửa', 'Giày dép', 'Túi ví', 'Đồng hồ'];
 
+    // Load products from service
     useEffect(() => {
-        setIsLoaded(true);
-        setProducts([
-            { id: 'p1', name: 'iPhone 15 Pro Max 256GB Titan Xanh Chính Hãng VN/A Bảo Hành 12 Tháng', price: 29990000, originalPrice: 34990000, sold: '12.3k', rating: 4.9, image: '📱', category: 'Điện thoại', location: 'TP. Hồ Chí Minh', isOfficial: true, freeShip: true },
-            { id: 'p2', name: 'Samsung Galaxy S24 Ultra 512GB Xám Titan Chính Hãng', price: 25990000, originalPrice: 29990000, sold: '8.7k', rating: 4.8, image: '📲', category: 'Điện thoại', location: 'Hà Nội', isOfficial: true, freeShip: true },
-            { id: 'p3', name: 'MacBook Air M3 13 inch 256GB Space Gray 2024', price: 27990000, originalPrice: 31990000, sold: '3.2k', rating: 4.9, image: '💻', category: 'Laptop', location: 'TP. Hồ Chí Minh', isOfficial: true, freeShip: true },
-            { id: 'p4', name: 'Áo Hoodie Unisex Form Rộng Nỉ Cotton Dày Dặn Premium', price: 199000, originalPrice: 350000, sold: '45.2k', rating: 4.7, image: '👕', category: 'Thời trang', location: 'Hà Nội', isFavorite: true, freeShip: true },
-            { id: 'p5', name: 'Giày Nike Air Force 1 07 Low White Chính Hãng', price: 2590000, originalPrice: 3200000, sold: '5.2k', rating: 4.8, image: '👟', category: 'Giày dép', location: 'TP. Hồ Chí Minh', isOfficial: true },
-            { id: 'p6', name: 'Son Dưỡng Môi Dior Addict Lip Glow Fullsize', price: 950000, originalPrice: 1200000, sold: '18.7k', rating: 4.9, image: '💄', category: 'Làm đẹp', location: 'TP. Hồ Chí Minh', isFavorite: true },
-            { id: 'p7', name: 'Nồi Chiên Không Dầu Lock&Lock 5.2L Digital', price: 1290000, originalPrice: 2490000, sold: '23.4k', rating: 4.8, image: '🍳', category: 'Nhà cửa', location: 'Hà Nội', freeShip: true },
-            { id: 'p8', name: 'Laptop Dell XPS 13 Plus Intel Core i7 Gen 13', price: 32990000, originalPrice: 38990000, sold: '1.2k', rating: 4.7, image: '💻', category: 'Laptop', location: 'TP. Hồ Chí Minh', isOfficial: true },
-            { id: 'p9', name: 'Quần Jean Nam Slim Fit Cao Cấp Dáng Ôm Vừa', price: 299000, originalPrice: 450000, sold: '67.8k', rating: 4.6, image: '👖', category: 'Thời trang', location: 'Hà Nội', isFavorite: true },
-            { id: 'p10', name: 'Serum Vitamin C The Ordinary 30ml Chính Hãng', price: 350000, originalPrice: 500000, sold: '34.5k', rating: 4.8, image: '🧴', category: 'Làm đẹp', location: 'TP. Hồ Chí Minh', freeShip: true },
-            { id: 'p11', name: 'Đèn Bàn LED Chống Cận 3 Chế Độ Sáng USB', price: 189000, originalPrice: 320000, sold: '12.1k', rating: 4.5, image: '💡', category: 'Nhà cửa', location: 'Hà Nội' },
-            { id: 'p12', name: 'Giày Adidas Ultraboost 23 Chính Hãng', price: 4290000, originalPrice: 4990000, sold: '2.8k', rating: 4.9, image: '👟', category: 'Giày dép', location: 'TP. Hồ Chí Minh', isOfficial: true, freeShip: true },
-            { id: 'p13', name: 'Túi Xách Nữ Charles & Keith Authentic', price: 890000, originalPrice: 1290000, sold: '9.1k', rating: 4.7, image: '👜', category: 'Túi ví', location: 'Hà Nội', isFavorite: true },
-            { id: 'p14', name: 'Đồng Hồ Casio G-Shock GA-2100 Chính Hãng', price: 2890000, originalPrice: 3500000, sold: '4.5k', rating: 4.8, image: '⌚', category: 'Đồng hồ', location: 'TP. Hồ Chí Minh', isOfficial: true },
-            { id: 'p15', name: 'Tai Nghe Bluetooth Apple AirPods Pro 2 USB-C', price: 4990000, originalPrice: 6990000, sold: '15.1k', rating: 4.9, image: '🎧', category: 'Điện thoại', location: 'TP. Hồ Chí Minh', isOfficial: true, freeShip: true },
-        ]);
-    }, []);
+        const loadProducts = async () => {
+            setIsLoading(true);
+            try {
+                const { products: data, total } = await productService.getProducts({
+                    category: selectedCategory,
+                    search: searchQuery,
+                    sort: sortBy,
+                });
+                setProducts(data);
+                setTotalProducts(total);
+                setIsLoaded(true);
+            } catch (error) {
+                console.error('Failed to load products:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadProducts();
+    }, [selectedCategory, sortBy, searchQuery]);
 
+    // Update category when URL param changes
     useEffect(() => {
-        let result = [...products];
-
-        if (selectedCategory !== 'Tất cả') {
-            result = result.filter(p => p.category === selectedCategory);
+        if (categoryParam) {
+            setSelectedCategory(categoryParam);
         }
+    }, [categoryParam]);
 
-        if (searchQuery) {
-            result = result.filter(p =>
-                p.name.toLowerCase().includes(searchQuery.toLowerCase())
-            );
+    // Update search when URL param changes
+    useEffect(() => {
+        if (searchParam) {
+            setSearchQuery(searchParam);
         }
-
-        switch (sortBy) {
-            case 'price-asc':
-                result.sort((a, b) => a.price - b.price);
-                break;
-            case 'price-desc':
-                result.sort((a, b) => b.price - a.price);
-                break;
-            case 'newest':
-                result.sort((a, b) => parseFloat(b.sold) - parseFloat(a.sold));
-                break;
-            case 'best-seller':
-                result.sort((a, b) => parseFloat(b.sold.replace('k', '000')) - parseFloat(a.sold.replace('k', '000')));
-                break;
-            default:
-                result.sort((a, b) => b.rating - a.rating);
-        }
-
-        setFilteredProducts(result);
-    }, [products, selectedCategory, sortBy, searchQuery]);
+    }, [searchParam]);
 
     const addToCart = (productId: string, productName: string, e: React.MouseEvent) => {
         e.preventDefault();
@@ -92,13 +67,12 @@ export default function ProductsPage() {
 
         setTimeout(() => {
             setAddingToCart(null);
-            setNotification(`Đã thêm "${productName.substring(0, 25)}..." vào giỏ hàng`);
+            setNotification(`✓ Đã thêm "${productName.substring(0, 25)}..." vào giỏ hàng`);
             setTimeout(() => setNotification(null), 2500);
         }, 500);
     };
 
     const formatPrice = (price: number) => new Intl.NumberFormat('vi-VN').format(price);
-    const getDiscount = (price: number, original: number) => Math.round((1 - price / original) * 100);
 
     return (
         <div className={`min-h-screen bg-[#f5f5f5] ${isLoaded ? 'animate-fade-in' : 'opacity-0'}`}>
@@ -134,6 +108,9 @@ export default function ProductsPage() {
                                             style={{ animationDelay: `${index * 50}ms` }}
                                         >
                                             {cat}
+                                            {selectedCategory === cat && (
+                                                <span className="ml-1 text-xs">({totalProducts})</span>
+                                            )}
                                         </button>
                                     ))}
                                 </div>
@@ -181,6 +158,16 @@ export default function ProductsPage() {
 
                     {/* Main Content */}
                     <main className="flex-1">
+                        {/* Breadcrumb */}
+                        <div className="bg-white rounded-sm shadow-sm p-3 mb-3 animate-fade-in-down">
+                            <div className="flex items-center gap-2 text-sm">
+                                <Link href="/" className="text-gray-500 hover:text-[#ee4d2d]">Trang chủ</Link>
+                                <span className="text-gray-400">›</span>
+                                <span className="text-gray-700">{selectedCategory === 'Tất cả' ? 'Tất cả sản phẩm' : selectedCategory}</span>
+                                <span className="ml-auto text-gray-500">{totalProducts} sản phẩm</span>
+                            </div>
+                        </div>
+
                         {/* Search Bar */}
                         <div className="bg-white rounded-sm shadow-sm p-3 mb-3 animate-fade-in-down">
                             <input
@@ -222,31 +209,47 @@ export default function ProductsPage() {
                             </select>
                         </div>
 
-                        {/* Products Grid */}
-                        {filteredProducts.length === 0 ? (
+                        {/* Loading State */}
+                        {isLoading ? (
+                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-[10px]">
+                                {[...Array(10)].map((_, i) => (
+                                    <div key={i} className="bg-white rounded-sm overflow-hidden animate-pulse">
+                                        <div className="aspect-square bg-gray-200" />
+                                        <div className="p-3 space-y-2">
+                                            <div className="h-4 bg-gray-200 rounded" />
+                                            <div className="h-4 bg-gray-200 rounded w-2/3" />
+                                            <div className="h-5 bg-gray-200 rounded w-1/2" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : products.length === 0 ? (
                             <div className="bg-white rounded-sm p-12 text-center animate-fade-in">
                                 <div className="text-5xl mb-4 animate-float">🔍</div>
-                                <p className="text-gray-500">Không tìm thấy sản phẩm phù hợp</p>
+                                <p className="text-gray-500 mb-2">Không tìm thấy sản phẩm phù hợp</p>
+                                <p className="text-sm text-gray-400">Thử tìm kiếm với từ khóa khác hoặc chọn danh mục khác</p>
                             </div>
                         ) : (
                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-[10px]">
-                                {filteredProducts.map((product, index) => (
+                                {products.map((product, index) => (
                                     <Link
                                         key={product.id}
                                         href={`/products/${product.id}`}
                                         className="product-card group animate-fade-in-up"
                                         style={{ animationDelay: `${index * 50}ms` }}
                                     >
-                                        <div className="relative aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
-                                            <span className={`text-6xl product-image ${addingToCart === product.id ? 'animate-bounce-in' : ''}`}>
-                                                {product.image}
-                                            </span>
+                                        <div className="relative aspect-square bg-gray-100 overflow-hidden">
+                                            <Image
+                                                src={product.thumbnail}
+                                                alt={product.name}
+                                                fill
+                                                className={`object-cover product-image ${addingToCart === product.id ? 'animate-bounce-in' : ''}`}
+                                                unoptimized
+                                            />
 
                                             {/* Discount badge */}
-                                            {product.originalPrice > product.price && (
-                                                <div className="discount-badge">
-                                                    -{getDiscount(product.price, product.originalPrice)}%
-                                                </div>
+                                            {product.discount > 0 && (
+                                                <div className="discount-badge">-{product.discount}%</div>
                                             )}
 
                                             {/* Top left badges */}
@@ -281,7 +284,7 @@ export default function ProductsPage() {
                                                     <svg className="w-3 h-3 mr-0.5" fill="currentColor" viewBox="0 0 24 24">
                                                         <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z" />
                                                     </svg>
-                                                    Miễn phí vận chuyển
+                                                    Miễn phí
                                                 </div>
                                             )}
 
@@ -298,7 +301,7 @@ export default function ProductsPage() {
                                                 <span className="flex items-center gap-0.5">
                                                     <span className="star-rating">★</span> {product.rating}
                                                 </span>
-                                                <span>Đã bán {product.sold}</span>
+                                                <span>Đã bán {product.soldDisplay}</span>
                                             </div>
                                             <div className="text-[11px] text-gray-400 mt-0.5">{product.location}</div>
                                         </div>
@@ -310,5 +313,17 @@ export default function ProductsPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function ProductsPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center">
+                <div className="loading-spinner" />
+            </div>
+        }>
+            <ProductsContent />
+        </Suspense>
     );
 }

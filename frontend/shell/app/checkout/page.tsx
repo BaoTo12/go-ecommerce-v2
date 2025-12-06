@@ -2,17 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
+import { productService, Product } from '@/services/productService';
 
 interface CartItem {
-    id: string;
-    name: string;
-    price: number;
+    product: Product;
     quantity: number;
-    image: string;
     variant?: string;
 }
 
 export default function CheckoutPage() {
+    const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [selectedPayment, setSelectedPayment] = useState('cod');
     const [selectedShipping, setSelectedShipping] = useState('standard');
     const [orderPlaced, setOrderPlaced] = useState(false);
@@ -21,8 +21,27 @@ export default function CheckoutPage() {
     const [isLoaded, setIsLoaded] = useState(false);
     const [showConfetti, setShowConfetti] = useState(false);
 
+    // Load cart items (mock - would come from cart service)
     useEffect(() => {
-        setIsLoaded(true);
+        const loadCart = async () => {
+            try {
+                const [p1, p6] = await Promise.all([
+                    productService.getProduct('p1'),
+                    productService.getProduct('p6'),
+                ]);
+
+                const items: CartItem[] = [];
+                if (p1) items.push({ product: p1, quantity: 1, variant: 'Titan Xanh, 256GB' });
+                if (p6) items.push({ product: p6, quantity: 2, variant: '001 Pink' });
+
+                setCartItems(items);
+                setIsLoaded(true);
+            } catch (error) {
+                console.error('Failed to load cart:', error);
+                setIsLoaded(true);
+            }
+        };
+        loadCart();
     }, []);
 
     const address = {
@@ -31,11 +50,6 @@ export default function CheckoutPage() {
         address: '123 Đường ABC, Phường XYZ, Quận 1, Thành phố Hồ Chí Minh',
         isDefault: true,
     };
-
-    const cartItems: CartItem[] = [
-        { id: 'p1', name: 'iPhone 15 Pro Max 256GB Titan Xanh Chính Hãng VN/A', price: 29990000, quantity: 1, image: '📱', variant: 'Xanh Titan, 256GB' },
-        { id: 'p6', name: 'Son Dưỡng Môi Dior Addict Lip Glow', price: 950000, quantity: 2, image: '💄', variant: 'Màu 001 Pink' },
-    ];
 
     const paymentMethods = [
         { id: 'cod', name: 'Thanh toán khi nhận hàng', icon: '💵', color: 'from-green-400 to-green-600' },
@@ -52,7 +66,7 @@ export default function CheckoutPage() {
         { id: 'express', name: 'Hỏa Tốc', time: 'Trong ngày', price: 50000, icon: '⚡' },
     ];
 
-    const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const subtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
     const shippingFee = shippingMethods.find(s => s.id === selectedShipping)?.price || 0;
     const discount = 50000;
     const total = subtotal + shippingFee - discount;
@@ -116,8 +130,16 @@ export default function CheckoutPage() {
         );
     }
 
+    if (!isLoaded) {
+        return (
+            <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center">
+                <div className="loading-spinner" />
+            </div>
+        );
+    }
+
     return (
-        <div className={`min-h-screen bg-[#f5f5f5] ${isLoaded ? 'animate-fade-in' : 'opacity-0'}`}>
+        <div className="min-h-screen bg-[#f5f5f5] animate-fade-in">
             {/* Header */}
             <div className="bg-white border-b animate-fade-in-down">
                 <div className="container mx-auto px-4 py-4">
@@ -169,23 +191,29 @@ export default function CheckoutPage() {
                     </div>
                     {cartItems.map((item, index) => (
                         <div
-                            key={item.id}
+                            key={item.product.id}
                             className="p-4 border-b flex items-center gap-4 hover:bg-gray-50 transition-colors animate-fade-in-left"
                             style={{ animationDelay: `${(index + 1) * 100}ms` }}
                         >
-                            <div className="w-16 h-16 bg-gray-100 rounded-sm flex items-center justify-center text-3xl flex-shrink-0 hover:scale-110 transition-transform">
-                                {item.image}
+                            <div className="relative w-16 h-16 bg-gray-100 rounded-sm overflow-hidden flex-shrink-0 hover:scale-110 transition-transform">
+                                <Image
+                                    src={item.product.thumbnail}
+                                    alt={item.product.name}
+                                    fill
+                                    className="object-cover"
+                                    unoptimized
+                                />
                             </div>
                             <div className="flex-1">
-                                <h3 className="text-sm line-clamp-2">{item.name}</h3>
+                                <h3 className="text-sm line-clamp-2">{item.product.name}</h3>
                                 {item.variant && <p className="text-xs text-gray-400 mt-1">Phân loại: {item.variant}</p>}
                             </div>
                             <div className="text-right">
-                                <p className="text-sm">₫{formatPrice(item.price)}</p>
+                                <p className="text-sm">₫{formatPrice(item.product.price)}</p>
                                 <p className="text-sm text-gray-400">x{item.quantity}</p>
                             </div>
                             <div className="text-right w-28">
-                                <p className="text-sm text-[#ee4d2d] font-medium">₫{formatPrice(item.price * item.quantity)}</p>
+                                <p className="text-sm text-[#ee4d2d] font-medium">₫{formatPrice(item.product.price * item.quantity)}</p>
                             </div>
                         </div>
                     ))}

@@ -3,40 +3,49 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-
-const allProducts = [
-    { id: 'p1', name: 'iPhone 15 Pro Max 256GB Titan Xanh Chính Hãng VN/A Bảo Hành 12 Tháng', price: 29990000, originalPrice: 34990000, sold: '12.3k', rating: 4.9, reviews: 8560, image: '📱', category: 'Điện thoại', description: 'iPhone 15 Pro Max với chip A17 Pro mạnh mẽ nhất, camera 48MP, màn hình Super Retina XDR 6.7 inch, thời lượng pin cả ngày. Thiết kế titan cao cấp, nhẹ hơn và bền hơn.', shop: 'Apple Store Official', shopLocation: 'TP. Hồ Chí Minh', shopRating: 4.9, shopProducts: 156, shopResponse: '95%' },
-    { id: 'p2', name: 'Samsung Galaxy S24 Ultra 512GB Xám Titan Chính Hãng', price: 25990000, originalPrice: 29990000, sold: '8.7k', rating: 4.8, reviews: 5430, image: '📲', category: 'Điện thoại', description: 'Galaxy S24 Ultra với S Pen tích hợp, camera 200MP, màn hình Dynamic AMOLED 2X 6.8 inch, chip Snapdragon 8 Gen 3.', shop: 'Samsung Official', shopLocation: 'Hà Nội', shopRating: 4.9, shopProducts: 234, shopResponse: '97%' },
-    { id: 'p3', name: 'MacBook Air M3 13 inch 256GB Space Gray 2024', price: 27990000, originalPrice: 31990000, sold: '3.2k', rating: 4.9, reviews: 2340, image: '💻', category: 'Laptop', description: 'MacBook Air với chip M3 thế hệ mới, 8GB RAM, 256GB SSD, màn hình Liquid Retina 13.6 inch sắc nét.', shop: 'Apple Store Official', shopLocation: 'TP. Hồ Chí Minh', shopRating: 4.9, shopProducts: 156, shopResponse: '95%' },
-    { id: 'p4', name: 'Áo Hoodie Unisex Form Rộng Nỉ Cotton Dày Dặn Premium', price: 199000, originalPrice: 350000, sold: '45.2k', rating: 4.7, reviews: 12340, image: '👕', category: 'Thời trang', description: 'Áo hoodie unisex chất liệu cotton dày dặn, form rộng thoải mái, phù hợp mọi dáng người. Nhiều màu sắc để lựa chọn.', shop: 'Fashion Store', shopLocation: 'Hà Nội', shopRating: 4.7, shopProducts: 567, shopResponse: '92%' },
-    { id: 'p5', name: 'Giày Nike Air Force 1 07 Low White Chính Hãng', price: 2590000, originalPrice: 3200000, sold: '5.2k', rating: 4.8, reviews: 3456, image: '👟', category: 'Giày dép', description: 'Nike Air Force 1 chính hãng, đệm Air êm ái, thiết kế iconic từ năm 1982, phù hợp mọi phong cách.', shop: 'Nike Official', shopLocation: 'TP. Hồ Chí Minh', shopRating: 4.8, shopProducts: 234, shopResponse: '96%' },
-    { id: 'p6', name: 'Son Dưỡng Môi Dior Addict Lip Glow Fullsize', price: 950000, originalPrice: 1200000, sold: '18.7k', rating: 4.9, reviews: 8765, image: '💄', category: 'Làm đẹp', description: 'Son dưỡng môi Dior Addict Lip Glow, dưỡng ẩm và tạo màu tự nhiên, công nghệ Color Reviver phản ứng với độ pH của môi.', shop: 'Dior Beauty Official', shopLocation: 'TP. Hồ Chí Minh', shopRating: 4.9, shopProducts: 89, shopResponse: '98%' },
-];
+import Image from 'next/image';
+import { productService, Product } from '@/services/productService';
 
 export default function ProductDetailPage() {
     const params = useParams();
     const router = useRouter();
     const productId = params.id as string;
 
-    const product = allProducts.find(p => p.id === productId) || allProducts[0];
-
+    const [product, setProduct] = useState<Product | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [quantity, setQuantity] = useState(1);
-    const [selectedVariant, setSelectedVariant] = useState(0);
+    const [selectedVariants, setSelectedVariants] = useState<Record<string, number>>({});
     const [selectedImage, setSelectedImage] = useState(0);
     const [notification, setNotification] = useState<string | null>(null);
-    const [isLoaded, setIsLoaded] = useState(false);
     const [isAddingToCart, setIsAddingToCart] = useState(false);
     const [isBuying, setIsBuying] = useState(false);
     const [showHearts, setShowHearts] = useState(false);
 
-    const variants = ['Đen', 'Trắng', 'Xanh', 'Hồng'];
-
+    // Load product data
     useEffect(() => {
-        setIsLoaded(true);
-    }, []);
+        const loadProduct = async () => {
+            setIsLoading(true);
+            try {
+                const data = await productService.getProduct(productId);
+                if (data) {
+                    setProduct(data);
+                    // Initialize variant selections
+                    const initVariants: Record<string, number> = {};
+                    data.variants?.forEach(v => {
+                        initVariants[v.id] = 0;
+                    });
+                    setSelectedVariants(initVariants);
+                }
+            } catch (error) {
+                console.error('Failed to load product:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadProduct();
+    }, [productId]);
 
     const formatPrice = (price: number) => new Intl.NumberFormat('vi-VN').format(price);
-    const getDiscount = () => Math.round((1 - product.price / product.originalPrice) * 100);
 
     const addToCart = () => {
         setIsAddingToCart(true);
@@ -59,8 +68,44 @@ export default function ProductDetailPage() {
         }, 500);
     };
 
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-[#f5f5f5]">
+                <div className="container mx-auto px-4 py-4">
+                    <div className="bg-white rounded-sm shadow-sm p-6">
+                        <div className="grid md:grid-cols-5 gap-6">
+                            <div className="md:col-span-2">
+                                <div className="aspect-square bg-gray-200 rounded-sm animate-pulse" />
+                            </div>
+                            <div className="md:col-span-3 space-y-4">
+                                <div className="h-6 bg-gray-200 rounded animate-pulse" />
+                                <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse" />
+                                <div className="h-12 bg-gray-200 rounded animate-pulse" />
+                                <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!product) {
+        return (
+            <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="text-6xl mb-4">😕</div>
+                    <h2 className="text-xl font-medium mb-2">Sản phẩm không tồn tại</h2>
+                    <Link href="/products" className="text-[#ee4d2d] hover:underline">
+                        ← Quay lại danh sách sản phẩm
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className={`min-h-screen bg-[#f5f5f5] ${isLoaded ? 'animate-fade-in' : 'opacity-0'}`}>
+        <div className="min-h-screen bg-[#f5f5f5] animate-fade-in">
             {/* Toast */}
             {notification && <div className="toast toast-success">{notification}</div>}
 
@@ -103,21 +148,30 @@ export default function ProductDetailPage() {
                     <div className="grid md:grid-cols-5 gap-6 p-4">
                         {/* Images */}
                         <div className="md:col-span-2 animate-fade-in-left">
-                            <div className="aspect-square bg-gray-50 rounded-sm flex items-center justify-center mb-2 overflow-hidden">
-                                <span className={`text-[180px] transition-all duration-500 ${selectedImage === 0 ? 'animate-scale-in' : ''}`}>
-                                    {product.image}
-                                </span>
+                            <div className="relative aspect-square bg-gray-50 rounded-sm overflow-hidden mb-2">
+                                <Image
+                                    src={product.images[selectedImage] || product.thumbnail}
+                                    alt={product.name}
+                                    fill
+                                    className="object-cover transition-all duration-500"
+                                    unoptimized
+                                />
                             </div>
-                            <div className="flex gap-2">
-                                {[0, 1, 2, 3, 4].map(i => (
+                            <div className="flex gap-2 overflow-x-auto">
+                                {product.images.map((img, i) => (
                                     <button
                                         key={i}
                                         onClick={() => setSelectedImage(i)}
-                                        className={`w-16 h-16 bg-gray-100 rounded-sm flex items-center justify-center text-2xl 
-                               cursor-pointer border-2 transition-all duration-300 hover:scale-105
+                                        className={`relative w-16 h-16 flex-shrink-0 rounded-sm overflow-hidden border-2 transition-all duration-300 hover:scale-105
                                ${selectedImage === i ? 'border-[#ee4d2d]' : 'border-transparent hover:border-gray-300'}`}
                                     >
-                                        {product.image}
+                                        <Image
+                                            src={img}
+                                            alt={`${product.name} ${i + 1}`}
+                                            fill
+                                            className="object-cover"
+                                            unoptimized
+                                        />
                                     </button>
                                 ))}
                             </div>
@@ -126,7 +180,9 @@ export default function ProductDetailPage() {
                         {/* Details */}
                         <div className="md:col-span-3 animate-fade-in-right">
                             <div className="flex items-start gap-2 mb-2">
-                                <span className="bg-[#ee4d2d] text-white text-[10px] px-1 py-0.5 animate-pulse">Mall</span>
+                                {product.isOfficial && (
+                                    <span className="bg-[#ee4d2d] text-white text-[10px] px-1 py-0.5 animate-pulse">Mall</span>
+                                )}
                                 <h1 className="text-lg leading-tight flex-1">{product.name}</h1>
                             </div>
 
@@ -134,7 +190,7 @@ export default function ProductDetailPage() {
                             <div className="flex items-center gap-4 text-sm py-3 border-b">
                                 <div className="flex items-center gap-1">
                                     <span className="text-[#ee4d2d] font-medium border-b border-[#ee4d2d]">{product.rating}</span>
-                                    <span className="star-rating">★★★★★</span>
+                                    <span className="star-rating">{'★'.repeat(Math.floor(product.rating))}{'☆'.repeat(5 - Math.floor(product.rating))}</span>
                                 </div>
                                 <span className="text-gray-300">|</span>
                                 <div className="hover:scale-105 transition-transform cursor-pointer">
@@ -143,7 +199,7 @@ export default function ProductDetailPage() {
                                 </div>
                                 <span className="text-gray-300">|</span>
                                 <div className="hover:scale-105 transition-transform cursor-pointer">
-                                    <span className="font-medium">{product.sold}</span>
+                                    <span className="font-medium">{product.soldDisplay}</span>
                                     <span className="text-gray-500 ml-1">Đã Bán</span>
                                 </div>
                             </div>
@@ -153,14 +209,16 @@ export default function ProductDetailPage() {
                                 <div className="flex items-center gap-3">
                                     <span className="text-gray-400 line-through text-sm">₫{formatPrice(product.originalPrice)}</span>
                                     <span className="text-[#ee4d2d] text-3xl font-medium animate-pulse-glow rounded px-2">₫{formatPrice(product.price)}</span>
-                                    <span className="bg-[#ee4d2d] text-white text-xs px-2 py-0.5 rounded-sm animate-bounce">{getDiscount()}% GIẢM</span>
+                                    {product.discount > 0 && (
+                                        <span className="bg-[#ee4d2d] text-white text-xs px-2 py-0.5 rounded-sm animate-bounce">{product.discount}% GIẢM</span>
+                                    )}
                                 </div>
                             </div>
 
                             {/* Vouchers */}
                             <div className="flex items-center gap-4 py-3 text-sm">
                                 <span className="text-gray-500 w-24">Mã Giảm Giá</span>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 flex-wrap">
                                     <span className="bg-[#fef6f5] text-[#ee4d2d] border border-[#ee4d2d] px-2 py-0.5 text-xs cursor-pointer hover:bg-[#ffeee8] transition-colors hover-shine">Giảm ₫50k</span>
                                     <span className="bg-[#fef6f5] text-[#ee4d2d] border border-[#ee4d2d] px-2 py-0.5 text-xs cursor-pointer hover:bg-[#ffeee8] transition-colors hover-shine">Giảm 10%</span>
                                     <span className="bg-[#fef6f5] text-[#ee4d2d] border border-[#ee4d2d] px-2 py-0.5 text-xs cursor-pointer hover:bg-[#ffeee8] transition-colors hover-shine">Freeship</span>
@@ -174,28 +232,32 @@ export default function ProductDetailPage() {
                                     <svg className="w-5 h-5 text-[#00bfa5] animate-float" fill="currentColor" viewBox="0 0 24 24">
                                         <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z" />
                                     </svg>
-                                    <span className="text-[#00bfa5] font-medium">Miễn phí vận chuyển</span>
+                                    <span className={product.freeShip ? 'text-[#00bfa5] font-medium' : ''}>
+                                        {product.freeShip ? 'Miễn phí vận chuyển' : 'Phí vận chuyển: ₫25,000'}
+                                    </span>
                                 </div>
                             </div>
 
                             {/* Variants */}
-                            <div className="flex items-start gap-4 py-3 text-sm">
-                                <span className="text-gray-500 w-24 pt-2">Màu Sắc</span>
-                                <div className="flex flex-wrap gap-2">
-                                    {variants.map((v, i) => (
-                                        <button
-                                            key={v}
-                                            onClick={() => setSelectedVariant(i)}
-                                            className={`px-4 py-2 border rounded-sm transition-all duration-200 hover-shrink ${selectedVariant === i
-                                                    ? 'border-[#ee4d2d] text-[#ee4d2d] bg-[#fef6f5] scale-105'
-                                                    : 'border-gray-300 hover:border-[#ee4d2d] hover:text-[#ee4d2d]'
-                                                }`}
-                                        >
-                                            {v}
-                                        </button>
-                                    ))}
+                            {product.variants?.map(variant => (
+                                <div key={variant.id} className="flex items-start gap-4 py-3 text-sm">
+                                    <span className="text-gray-500 w-24 pt-2">{variant.name}</span>
+                                    <div className="flex flex-wrap gap-2">
+                                        {variant.options.map((option, i) => (
+                                            <button
+                                                key={option}
+                                                onClick={() => setSelectedVariants(prev => ({ ...prev, [variant.id]: i }))}
+                                                className={`px-4 py-2 border rounded-sm transition-all duration-200 hover-shrink ${selectedVariants[variant.id] === i
+                                                        ? 'border-[#ee4d2d] text-[#ee4d2d] bg-[#fef6f5] scale-105'
+                                                        : 'border-gray-300 hover:border-[#ee4d2d] hover:text-[#ee4d2d]'
+                                                    }`}
+                                            >
+                                                {option}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            ))}
 
                             {/* Quantity */}
                             <div className="flex items-center gap-4 py-3 text-sm">
@@ -220,7 +282,7 @@ export default function ProductDetailPage() {
                                         +
                                     </button>
                                 </div>
-                                <span className="text-gray-400">999 sản phẩm có sẵn</span>
+                                <span className="text-gray-400">{product.stock} sản phẩm có sẵn</span>
                             </div>
 
                             {/* Actions */}
@@ -262,35 +324,41 @@ export default function ProductDetailPage() {
                 {/* Shop Info */}
                 <div className="bg-white rounded-sm shadow-sm mb-4 p-4 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
                     <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 bg-gradient-to-br from-[#ee4d2d] to-[#ff6533] rounded-full flex items-center justify-center text-white text-2xl font-bold hover:scale-110 transition-transform cursor-pointer">
-                            {product.shop.charAt(0)}
+                        <div className="relative w-16 h-16 rounded-full overflow-hidden hover:scale-110 transition-transform cursor-pointer">
+                            <Image
+                                src={product.shop.avatar}
+                                alt={product.shop.name}
+                                fill
+                                className="object-cover"
+                                unoptimized
+                            />
                         </div>
                         <div className="flex-1">
-                            <h3 className="font-medium">{product.shop}</h3>
+                            <h3 className="font-medium">{product.shop.name}</h3>
                             <p className="text-xs text-gray-500 flex items-center gap-1">
                                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                                Online {product.shopLocation}
+                                Online • {product.shop.location}
                             </p>
                         </div>
                         <button className="px-4 py-1.5 border border-[#ee4d2d] text-[#ee4d2d] text-sm hover:bg-[#fef6f5] transition-colors hover-shrink">
                             Xem Shop
                         </button>
                         <button className="px-4 py-1.5 border border-gray-300 text-gray-600 text-sm hover:border-[#ee4d2d] hover:text-[#ee4d2d] transition-colors hover-shrink">
-                            Chat Ngay
+                            💬 Chat Ngay
                         </button>
                     </div>
                     <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t text-sm">
                         <div className="hover:bg-gray-50 p-2 rounded transition-colors cursor-pointer">
                             <span className="text-gray-500">Đánh Giá: </span>
-                            <span className="text-[#ee4d2d] font-medium">{product.shopRating}</span>
+                            <span className="text-[#ee4d2d] font-medium">{product.shop.rating}</span>
                         </div>
                         <div className="hover:bg-gray-50 p-2 rounded transition-colors cursor-pointer">
                             <span className="text-gray-500">Sản Phẩm: </span>
-                            <span className="text-[#ee4d2d] font-medium">{product.shopProducts}</span>
+                            <span className="text-[#ee4d2d] font-medium">{product.shop.products}</span>
                         </div>
                         <div className="hover:bg-gray-50 p-2 rounded transition-colors cursor-pointer">
                             <span className="text-gray-500">Tỉ Lệ Phản Hồi: </span>
-                            <span className="text-[#ee4d2d] font-medium">{product.shopResponse}</span>
+                            <span className="text-[#ee4d2d] font-medium">{product.shop.responseRate}</span>
                         </div>
                     </div>
                 </div>
@@ -298,7 +366,9 @@ export default function ProductDetailPage() {
                 {/* Description */}
                 <div className="bg-white rounded-sm shadow-sm p-4 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
                     <h2 className="bg-[#fafafa] px-4 py-2 text-sm font-medium mb-4">CHI TIẾT SẢN PHẨM</h2>
-                    <p className="text-sm text-gray-600 leading-relaxed px-4">{product.description}</p>
+                    <div className="px-4 text-sm text-gray-600 leading-relaxed">
+                        <p>{product.description}</p>
+                    </div>
 
                     <h2 className="bg-[#fafafa] px-4 py-2 text-sm font-medium mb-4 mt-6">MÔ TẢ SẢN PHẨM</h2>
                     <div className="text-sm text-gray-600 leading-relaxed px-4 space-y-2">
@@ -307,6 +377,15 @@ export default function ProductDetailPage() {
                         <p>✅ Hỗ trợ đổi trả trong 7 ngày</p>
                         <p>✅ Giao hàng toàn quốc</p>
                         <p>✅ Thanh toán khi nhận hàng (COD)</p>
+                        {product.tags && (
+                            <div className="flex gap-2 pt-4">
+                                {product.tags.map(tag => (
+                                    <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
+                                        {tag}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
