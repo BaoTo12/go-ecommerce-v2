@@ -64,9 +64,37 @@ export default function Navigation() {
                                 Hỗ Trợ
                             </Link>
                             <span className="border-l border-white/30 h-3" />
-                            <Link href="#" className="hover:opacity-80">Đăng Ký</Link>
-                            <span className="border-l border-white/30 h-3" />
-                            <Link href="#" className="hover:opacity-80">Đăng Nhập</Link>
+                            {/* User Account Dropdown */}
+                            <div className="relative group">
+                                <Link href="/account" className="hover:opacity-80 flex items-center gap-2">
+                                    <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-xs">
+                                        👤
+                                    </div>
+                                    <span>nguyenvana</span>
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </Link>
+                                {/* Dropdown */}
+                                <div className="absolute top-full right-0 w-48 bg-white rounded-sm shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 mt-1">
+                                    <Link href="/account/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-[#fef6f5] hover:text-[#ee4d2d]">
+                                        👤 Tài Khoản Của Tôi
+                                    </Link>
+                                    <Link href="/account/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-[#fef6f5] hover:text-[#ee4d2d]">
+                                        📦 Đơn Mua
+                                    </Link>
+                                    <Link href="/account/addresses" className="block px-4 py-2 text-sm text-gray-700 hover:bg-[#fef6f5] hover:text-[#ee4d2d]">
+                                        📍 Địa Chỉ
+                                    </Link>
+                                    <Link href="/account/vouchers" className="block px-4 py-2 text-sm text-gray-700 hover:bg-[#fef6f5] hover:text-[#ee4d2d]">
+                                        🎟️ Kho Voucher
+                                    </Link>
+                                    <div className="border-t" />
+                                    <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-[#fef6f5] hover:text-[#ee4d2d]">
+                                        🚪 Đăng Xuất
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
