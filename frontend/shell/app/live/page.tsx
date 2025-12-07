@@ -1,271 +1,257 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
 
-interface Stream {
+interface LiveStream {
     id: string;
-    host: string;
+    shopName: string;
+    shopAvatar: string;
     title: string;
-    viewers: number;
     thumbnail: string;
-    products: number;
+    viewers: number;
+    isLive: boolean;
+    products: { name: string; price: number; discount: number }[];
 }
 
-interface ChatMessage {
-    id: string;
-    user: string;
-    message: string;
-    isGift?: boolean;
-}
+const LIVE_STREAMS: LiveStream[] = [
+    {
+        id: 'live1',
+        shopName: 'Apple Store Official',
+        shopAvatar: 'https://ui-avatars.com/api/?name=Apple&background=000&color=fff',
+        title: '⚡ Flash Sale iPhone 15 Series - Giảm đến 3 TRIỆU',
+        thumbnail: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400',
+        viewers: 12453,
+        isLive: true,
+        products: [
+            { name: 'iPhone 15 Pro Max', price: 29990000, discount: 10 },
+            { name: 'iPhone 15 Pro', price: 26990000, discount: 8 },
+        ],
+    },
+    {
+        id: 'live2',
+        shopName: 'Nike Official Store',
+        shopAvatar: 'https://ui-avatars.com/api/?name=Nike&background=000&color=fff',
+        title: '🔥 Giày Nike chính hãng - Săn deal 50%',
+        thumbnail: 'https://images.unsplash.com/photo-1600269452121-4f2416e55c28?w=400',
+        viewers: 8234,
+        isLive: true,
+        products: [
+            { name: 'Nike Air Force 1', price: 2590000, discount: 20 },
+            { name: 'Nike Air Max', price: 3190000, discount: 15 },
+        ],
+    },
+    {
+        id: 'live3',
+        shopName: 'Dior Beauty Official',
+        shopAvatar: 'https://ui-avatars.com/api/?name=Dior&background=9c27b0&color=fff',
+        title: '💄 Makeup Tutorial & Giveaway Son Dior',
+        thumbnail: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=400',
+        viewers: 5621,
+        isLive: true,
+        products: [
+            { name: 'Son Dior Addict', price: 950000, discount: 5 },
+        ],
+    },
+    {
+        id: 'live4',
+        shopName: 'Samsung Official',
+        shopAvatar: 'https://ui-avatars.com/api/?name=Samsung&background=1428a0&color=fff',
+        title: 'Ra mắt Galaxy S24 Ultra - Đặt trước giảm 5 triệu',
+        thumbnail: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400',
+        viewers: 15234,
+        isLive: false,
+        products: [],
+    },
+];
 
-export default function LivestreamPage() {
-    const [streams, setStreams] = useState<Stream[]>([]);
-    const [selectedStream, setSelectedStream] = useState<Stream | null>(null);
-    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-    const [newMessage, setNewMessage] = useState('');
-    const chatRef = useRef<HTMLDivElement>(null);
+export default function ShopLivePage() {
+    const [selectedStream, setSelectedStream] = useState<LiveStream | null>(null);
 
-    useEffect(() => {
-        setStreams([
-            { id: '1', host: 'TechStore Official', title: '🔥 Sale iPhone 15 - Giảm 5 Triệu!', viewers: 15234, thumbnail: '📱', products: 12 },
-            { id: '2', host: 'Fashion Queen', title: '👗 Thời Trang Mùa Đông - Freeship', viewers: 8721, thumbnail: '👗', products: 25 },
-            { id: '3', host: 'BeautyLive', title: '💄 Review Mỹ Phẩm Hàn - Tặng Voucher', viewers: 12543, thumbnail: '💄', products: 18 },
-            { id: '4', host: 'HomeDecor.vn', title: '🏠 Đồ Gia Dụng Thông Minh', viewers: 5432, thumbnail: '🏠', products: 30 },
-            { id: '5', host: 'SneakerHub', title: '👟 Unbox Giày Limited Edition', viewers: 21456, thumbnail: '👟', products: 8 },
-            { id: '6', host: 'GadgetWorld', title: '🎧 Deal Phụ Kiện Công Nghệ', viewers: 9876, thumbnail: '🎧', products: 45 },
-        ]);
-    }, []);
-
-    useEffect(() => {
-        if (!selectedStream) return;
-
-        const messages = [
-            '🔥 Sản phẩm này có freeship không shop?',
-            'Giá tốt quá!',
-            '❤️❤️❤️',
-            'Cho xem kỹ hơn được không ạ?',
-            'Đã đặt hàng!',
-            '⭐⭐⭐⭐⭐',
-            'Sale cho em voucher với shop ơi',
-            'Size này còn màu khác không?',
-        ];
-        const users = ['Minh Anh', 'Hoàng Long', 'Thu Hà', 'Đức Minh', 'Lan Anh', 'Việt Hà'];
-
-        const interval = setInterval(() => {
-            setChatMessages(prev => [
-                ...prev.slice(-30),
-                {
-                    id: crypto.randomUUID(),
-                    user: users[Math.floor(Math.random() * users.length)],
-                    message: messages[Math.floor(Math.random() * messages.length)],
-                    isGift: Math.random() > 0.9,
-                },
-            ]);
-        }, 1500);
-
-        return () => clearInterval(interval);
-    }, [selectedStream]);
-
-    useEffect(() => {
-        if (chatRef.current) {
-            chatRef.current.scrollTop = chatRef.current.scrollHeight;
-        }
-    }, [chatMessages]);
-
-    const sendMessage = () => {
-        if (!newMessage.trim()) return;
-        setChatMessages(prev => [...prev, { id: crypto.randomUUID(), user: 'Bạn', message: newMessage }]);
-        setNewMessage('');
+    const formatViewers = (num: number) => {
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+        return num.toString();
     };
 
-    if (selectedStream) {
-        return (
-            <div className="min-h-screen bg-black">
-                <div className="container mx-auto">
-                    <div className="grid lg:grid-cols-3 gap-0">
-                        {/* Video Area */}
-                        <div className="lg:col-span-2 relative">
-                            <button
-                                onClick={() => setSelectedStream(null)}
-                                className="absolute top-4 left-4 z-10 bg-black/50 text-white px-3 py-1 rounded text-sm hover:bg-black/70"
-                            >
-                                ← Quay lại
-                            </button>
+    const formatPrice = (price: number) => new Intl.NumberFormat('vi-VN').format(price);
 
-                            <div className="aspect-video bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center relative">
-                                <span className="text-9xl">{selectedStream.thumbnail}</span>
+    return (
+        <div className="min-h-screen bg-[#1a1a1a]">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#ee4d2d] to-[#ff6633]">
+                <div className="container mx-auto px-4 py-4">
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-white text-2xl font-bold flex items-center gap-3">
+                            <span className="w-3 h-3 bg-white rounded-full animate-pulse" />
+                            Shopee Live
+                        </h1>
+                        <div className="flex gap-4 text-white text-sm">
+                            <Link href="/live" className="hover:opacity-80">Đang phát</Link>
+                            <Link href="#" className="hover:opacity-80">Sắp phát</Link>
+                            <Link href="#" className="hover:opacity-80">Phát lại</Link>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                                {/* Live Badge */}
-                                <div className="absolute top-4 right-4 bg-[#EE4D2D] text-white px-3 py-1 rounded flex items-center gap-2 text-sm font-bold">
-                                    <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                                    LIVE
+            <div className="container mx-auto px-4 py-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Main Video Player */}
+                    <div className="lg:col-span-2">
+                        {selectedStream ? (
+                            <div className="bg-black rounded-lg overflow-hidden aspect-video relative animate-fade-in">
+                                <Image
+                                    src={selectedStream.thumbnail}
+                                    alt={selectedStream.title}
+                                    fill
+                                    className="object-cover"
+                                    unoptimized
+                                />
+                                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                    <button className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-all">
+                                        <span className="text-white text-4xl">▶</span>
+                                    </button>
                                 </div>
-
-                                {/* Viewers */}
-                                <div className="absolute bottom-4 left-4 bg-black/60 text-white px-3 py-1 rounded text-sm">
-                                    👁️ {selectedStream.viewers.toLocaleString()} đang xem
+                                {/* Live badge */}
+                                <div className="absolute top-4 left-4 flex items-center gap-2">
+                                    <span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-1">
+                                        <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                                        LIVE
+                                    </span>
+                                    <span className="bg-black/50 text-white text-xs px-2 py-1 rounded">
+                                        👁 {formatViewers(selectedStream.viewers)}
+                                    </span>
                                 </div>
+                                {/* Stream info */}
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 p-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full overflow-hidden">
+                                            <Image
+                                                src={selectedStream.shopAvatar}
+                                                alt={selectedStream.shopName}
+                                                width={40}
+                                                height={40}
+                                                className="object-cover"
+                                                unoptimized
+                                            />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-white font-medium">{selectedStream.shopName}</h3>
+                                            <p className="text-white/80 text-sm">{selectedStream.title}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="bg-gray-800 rounded-lg aspect-video flex items-center justify-center">
+                                <div className="text-center text-gray-400">
+                                    <div className="text-5xl mb-4">📺</div>
+                                    <p>Chọn một live stream để xem</p>
+                                </div>
+                            </div>
+                        )}
 
-                                {/* Products Overlay */}
-                                <div className="absolute bottom-4 right-4 flex gap-2">
-                                    {[1, 2, 3].map(i => (
-                                        <div key={i} className="w-16 h-16 bg-white rounded shadow-lg flex items-center justify-center text-2xl cursor-pointer hover:scale-110 transition-transform">
-                                            📦
+                        {/* Products in stream */}
+                        {selectedStream && selectedStream.products.length > 0 && (
+                            <div className="mt-4 bg-gray-800 rounded-lg p-4">
+                                <h3 className="text-white font-medium mb-3">🛒 Sản phẩm đang bán</h3>
+                                <div className="flex gap-4 overflow-x-auto pb-2">
+                                    {selectedStream.products.map((product, i) => (
+                                        <div key={i} className="flex-shrink-0 bg-gray-700 rounded-lg p-3 w-48">
+                                            <h4 className="text-white text-sm truncate">{product.name}</h4>
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <span className="text-[#ee4d2d] font-bold">₫{formatPrice(product.price)}</span>
+                                                <span className="text-xs text-white bg-[#ee4d2d] px-1 rounded">-{product.discount}%</span>
+                                            </div>
+                                            <button className="w-full mt-2 py-2 bg-[#ee4d2d] text-white text-sm rounded hover:opacity-90">
+                                                Mua ngay
+                                            </button>
                                         </div>
                                     ))}
                                 </div>
                             </div>
+                        )}
+                    </div>
 
-                            {/* Stream Info */}
-                            <div className="bg-gray-900 p-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-[#EE4D2D] rounded-full flex items-center justify-center text-white font-bold">
-                                        {selectedStream.host[0]}
-                                    </div>
-                                    <div className="flex-1">
-                                        <h2 className="text-white font-bold">{selectedStream.title}</h2>
-                                        <p className="text-gray-400 text-sm">{selectedStream.host}</p>
-                                    </div>
-                                    <button className="bg-[#EE4D2D] text-white px-6 py-2 rounded font-bold hover:bg-[#D73211]">
-                                        + Theo dõi
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Chat Area */}
-                        <div className="bg-gray-900 flex flex-col h-[calc(100vh-64px)]">
-                            <div className="p-3 border-b border-gray-700">
-                                <h3 className="text-white font-bold">💬 Trò chuyện trực tiếp</h3>
-                            </div>
-
-                            <div ref={chatRef} className="flex-1 overflow-y-auto p-3 space-y-2">
-                                {chatMessages.map(msg => (
-                                    <div
-                                        key={msg.id}
-                                        className={`rounded p-2 text-sm ${msg.isGift
-                                                ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/50'
-                                                : msg.user === 'Bạn'
-                                                    ? 'bg-[#EE4D2D]/20'
-                                                    : 'bg-gray-800'
-                                            }`}
-                                    >
-                                        {msg.isGift && <span className="text-yellow-400">🎁 </span>}
-                                        <span className="text-[#EE4D2D] font-semibold">{msg.user}: </span>
-                                        <span className="text-white">{msg.message}</span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="p-3 border-t border-gray-700">
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={newMessage}
-                                        onChange={e => setNewMessage(e.target.value)}
-                                        onKeyPress={e => e.key === 'Enter' && sendMessage()}
-                                        placeholder="Nhập tin nhắn..."
-                                        className="flex-1 bg-gray-800 text-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#EE4D2D]"
+                    {/* Stream List */}
+                    <div className="space-y-4">
+                        <h2 className="text-white font-medium">Đang phát trực tiếp</h2>
+                        {LIVE_STREAMS.filter(s => s.isLive).map((stream, index) => (
+                            <button
+                                key={stream.id}
+                                onClick={() => setSelectedStream(stream)}
+                                className={`w-full bg-gray-800 rounded-lg overflow-hidden hover:ring-2 hover:ring-[#ee4d2d] transition-all animate-fade-in-up ${selectedStream?.id === stream.id ? 'ring-2 ring-[#ee4d2d]' : ''
+                                    }`}
+                                style={{ animationDelay: `${index * 50}ms` }}
+                            >
+                                <div className="relative aspect-video">
+                                    <Image
+                                        src={stream.thumbnail}
+                                        alt={stream.title}
+                                        fill
+                                        className="object-cover"
+                                        unoptimized
                                     />
-                                    <button
-                                        onClick={sendMessage}
-                                        className="bg-[#EE4D2D] text-white px-4 py-2 rounded font-semibold hover:bg-[#D73211]"
-                                    >
-                                        Gửi
-                                    </button>
+                                    <div className="absolute top-2 left-2 flex items-center gap-1">
+                                        <span className="bg-red-600 text-white text-xs px-1.5 py-0.5 rounded">LIVE</span>
+                                        <span className="bg-black/50 text-white text-xs px-1.5 py-0.5 rounded">
+                                            {formatViewers(stream.viewers)}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div className="flex gap-2 mt-2">
-                                    <button className="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded text-xs hover:bg-yellow-500/30">
-                                        🎁 Tặng quà
-                                    </button>
-                                    <button className="bg-red-500/20 text-red-400 px-3 py-1 rounded text-xs hover:bg-red-500/30">
-                                        ❤️ Thích
-                                    </button>
+                                <div className="p-3 flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                                        <Image
+                                            src={stream.shopAvatar}
+                                            alt={stream.shopName}
+                                            width={32}
+                                            height={32}
+                                            className="object-cover"
+                                            unoptimized
+                                        />
+                                    </div>
+                                    <div className="text-left">
+                                        <h3 className="text-white text-sm font-medium truncate">{stream.shopName}</h3>
+                                        <p className="text-gray-400 text-xs truncate">{stream.title}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
+                            </button>
+                        ))}
 
-    return (
-        <div className="min-h-screen bg-[#F5F5F5]">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-[#EE4D2D] to-[#FF6633] py-4">
-                <div className="container mx-auto px-4">
-                    <div className="flex items-center gap-3 text-white">
-                        <span className="w-3 h-3 bg-white rounded-full animate-pulse" />
-                        <h1 className="text-2xl font-bold">Shopee Live</h1>
-                        <span className="text-sm opacity-80">| {streams.length} đang phát trực tiếp</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* Streams Grid */}
-            <div className="container mx-auto px-4 py-6">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-                    {streams.map(stream => (
-                        <div
-                            key={stream.id}
-                            onClick={() => setSelectedStream(stream)}
-                            className="bg-white rounded overflow-hidden cursor-pointer hover:shadow-xl transition-shadow group"
-                        >
-                            <div className="relative aspect-[3/4] bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden">
-                                <span className="text-6xl group-hover:scale-110 transition-transform">{stream.thumbnail}</span>
-
-                                {/* Live Badge */}
-                                <div className="absolute top-2 left-2 bg-[#EE4D2D] text-white px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                                    LIVE
+                        <h2 className="text-white font-medium pt-4">Sắp phát</h2>
+                        {LIVE_STREAMS.filter(s => !s.isLive).map(stream => (
+                            <div key={stream.id} className="bg-gray-800 rounded-lg overflow-hidden opacity-60">
+                                <div className="relative aspect-video">
+                                    <Image
+                                        src={stream.thumbnail}
+                                        alt={stream.title}
+                                        fill
+                                        className="object-cover grayscale"
+                                        unoptimized
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                                        <span className="text-white text-sm">Lịch: 15:00 hôm nay</span>
+                                    </div>
                                 </div>
-
-                                {/* Viewer Count */}
-                                <div className="absolute bottom-2 left-2 bg-black/60 text-white px-2 py-0.5 rounded text-xs">
-                                    👁️ {stream.viewers.toLocaleString()}
-                                </div>
-
-                                {/* Products Count */}
-                                <div className="absolute bottom-2 right-2 bg-[#EE4D2D] text-white px-2 py-0.5 rounded text-xs">
-                                    🛒 {stream.products}
+                                <div className="p-3 flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                                        <Image
+                                            src={stream.shopAvatar}
+                                            alt={stream.shopName}
+                                            width={32}
+                                            height={32}
+                                            className="object-cover"
+                                            unoptimized
+                                        />
+                                    </div>
+                                    <div className="text-left">
+                                        <h3 className="text-white text-sm font-medium truncate">{stream.shopName}</h3>
+                                        <p className="text-gray-400 text-xs truncate">{stream.title}</p>
+                                    </div>
                                 </div>
                             </div>
-
-                            <div className="p-2">
-                                <h3 className="text-sm font-semibold line-clamp-2 h-10">{stream.title}</h3>
-                                <p className="text-xs text-gray-500 mt-1">{stream.host}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Features */}
-            <div className="container mx-auto px-4 py-8">
-                <div className="bg-white rounded p-6">
-                    <h2 className="text-lg font-bold text-center mb-6 text-[#EE4D2D]">Tính năng Shopee Live</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                        <div className="p-4">
-                            <div className="text-4xl mb-2">🛍️</div>
-                            <h3 className="font-semibold text-sm">Mua Ngay</h3>
-                            <p className="text-xs text-gray-500">Thêm vào giỏ khi xem</p>
-                        </div>
-                        <div className="p-4">
-                            <div className="text-4xl mb-2">💬</div>
-                            <h3 className="font-semibold text-sm">Chat Trực Tiếp</h3>
-                            <p className="text-xs text-gray-500">Hỏi đáp ngay lập tức</p>
-                        </div>
-                        <div className="p-4">
-                            <div className="text-4xl mb-2">🎁</div>
-                            <h3 className="font-semibold text-sm">Quà Tặng</h3>
-                            <p className="text-xs text-gray-500">Voucher độc quyền</p>
-                        </div>
-                        <div className="p-4">
-                            <div className="text-4xl mb-2">⚡</div>
-                            <h3 className="font-semibold text-sm">Flash Deal</h3>
-                            <p className="text-xs text-gray-500">Giá sốc live only</p>
-                        </div>
+                        ))}
                     </div>
                 </div>
             </div>
