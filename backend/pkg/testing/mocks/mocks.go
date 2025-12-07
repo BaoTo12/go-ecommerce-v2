@@ -1,17 +1,14 @@
 package mocks
 
 import (
-	"context"
 	"sync"
 	"time"
-
-	"github.com/titan-commerce/backend/auction-service/internal/domain"
 )
 
 // MockAuctionRepository is a mock implementation for testing
 type MockAuctionRepository struct {
-	auctions   map[string]*domain.Auction
-	bids       []*domain.Bid
+	auctions   map[string]*MockAuction
+	bids       []*MockBid
 	mu         sync.RWMutex
 
 	// Call tracking for verification
@@ -25,6 +22,25 @@ type MockAuctionRepository struct {
 	SaveBidError     error
 }
 
+// MockAuction represents an auction for testing
+type MockAuction struct {
+	ID          string
+	ProductID   string
+	ProductName string
+	CurrentBid  float64
+	Status      string
+	EndTime     time.Time
+}
+
+// MockBid represents a bid for testing
+type MockBid struct {
+	ID        string
+	AuctionID string
+	UserID    string
+	Amount    float64
+	CreatedAt time.Time
+}
+
 // MethodCall tracks method invocations
 type MethodCall struct {
 	Method string
@@ -35,8 +51,8 @@ type MethodCall struct {
 // NewMockAuctionRepository creates a mock repository
 func NewMockAuctionRepository() *MockAuctionRepository {
 	return &MockAuctionRepository{
-		auctions: make(map[string]*domain.Auction),
-		bids:     make([]*domain.Bid, 0),
+		auctions: make(map[string]*MockAuction),
+		bids:     make([]*MockBid, 0),
 		Calls:    make([]MethodCall, 0),
 	}
 }
@@ -72,15 +88,14 @@ func (m *MockAuctionRepository) ResetCalls() {
 }
 
 // SetupAuction adds an auction for testing
-func (m *MockAuctionRepository) SetupAuction(auction *domain.Auction) {
+func (m *MockAuctionRepository) SetupAuction(auction *MockAuction) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.auctions[auction.ID] = auction
 }
 
-// Interface implementations
-
-func (m *MockAuctionRepository) GetActiveAuctions(ctx interface{}) ([]*domain.Auction, error) {
+// GetActiveAuctions returns all active auctions
+func (m *MockAuctionRepository) GetActiveAuctions() ([]*MockAuction, error) {
 	m.recordCall("GetActiveAuctions")
 	if m.GetActiveError != nil {
 		return nil, m.GetActiveError
@@ -89,14 +104,15 @@ func (m *MockAuctionRepository) GetActiveAuctions(ctx interface{}) ([]*domain.Au
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	result := make([]*domain.Auction, 0, len(m.auctions))
+	result := make([]*MockAuction, 0, len(m.auctions))
 	for _, a := range m.auctions {
 		result = append(result, a)
 	}
 	return result, nil
 }
 
-func (m *MockAuctionRepository) GetAuctionByID(ctx interface{}, id string) (*domain.Auction, error) {
+// GetAuctionByID returns an auction by ID
+func (m *MockAuctionRepository) GetAuctionByID(id string) (*MockAuction, error) {
 	m.recordCall("GetAuctionByID", id)
 	if m.GetByIDError != nil {
 		return nil, m.GetByIDError
@@ -108,7 +124,8 @@ func (m *MockAuctionRepository) GetAuctionByID(ctx interface{}, id string) (*dom
 	return m.auctions[id], nil
 }
 
-func (m *MockAuctionRepository) SaveAuction(ctx interface{}, auction *domain.Auction) error {
+// SaveAuction saves an auction
+func (m *MockAuctionRepository) SaveAuction(auction *MockAuction) error {
 	m.recordCall("SaveAuction", auction.ID)
 	if m.SaveAuctionError != nil {
 		return m.SaveAuctionError
@@ -121,7 +138,8 @@ func (m *MockAuctionRepository) SaveAuction(ctx interface{}, auction *domain.Auc
 	return nil
 }
 
-func (m *MockAuctionRepository) SaveBid(ctx interface{}, bid *domain.Bid) error {
+// SaveBid saves a bid
+func (m *MockAuctionRepository) SaveBid(bid *MockBid) error {
 	m.recordCall("SaveBid", bid.ID)
 	if m.SaveBidError != nil {
 		return m.SaveBidError
@@ -134,68 +152,20 @@ func (m *MockAuctionRepository) SaveBid(ctx interface{}, bid *domain.Bid) error 
 	return nil
 }
 
-func (m *MockAuctionRepository) GetBidsByAuction(ctx interface{}, auctionID string, limit int) ([]*domain.Bid, error) {
+// GetBidsByAuction returns bids for an auction
+func (m *MockAuctionRepository) GetBidsByAuction(auctionID string, limit int) ([]*MockBid, error) {
 	m.recordCall("GetBidsByAuction", auctionID, limit)
 
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	result := make([]*domain.Bid, 0)
+	result := make([]*MockBid, 0)
 	for _, b := range m.bids {
 		if b.AuctionID == auctionID {
 			result = append(result, b)
 		}
 	}
 	return result, nil
-}
-
-func (m *MockAuctionRepository) GetUserBids(ctx interface{}, userID string) ([]*domain.Bid, error) {
-	m.recordCall("GetUserBids", userID)
-
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	result := make([]*domain.Bid, 0)
-	for _, b := range m.bids {
-		if b.UserID == userID {
-			result = append(result, b)
-		}
-	}
-	return result, nil
-}
-
-// MockEventStore for CQRS testing
-type MockEventStore struct {
-	events     map[string][]interface{}
-	mu         sync.RWMutex
-	SaveError  error
-	LoadError  error
-}
-
-func NewMockEventStore() *MockEventStore {
-	return &MockEventStore{
-		events: make(map[string][]interface{}),
-	}
-}
-
-func (m *MockEventStore) Save(ctx context.Context, events ...interface{}) error {
-	if m.SaveError != nil {
-		return m.SaveError
-	}
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	// Simple append for testing
-	m.events["all"] = append(m.events["all"], events...)
-	return nil
-}
-
-func (m *MockEventStore) Load(ctx context.Context, aggregateID string) ([]interface{}, error) {
-	if m.LoadError != nil {
-		return nil, m.LoadError
-	}
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.events[aggregateID], nil
 }
 
 // MockMetricsRegistry for metrics testing
@@ -206,6 +176,7 @@ type MockMetricsRegistry struct {
 	mu         sync.Mutex
 }
 
+// NewMockMetricsRegistry creates a mock registry
 func NewMockMetricsRegistry() *MockMetricsRegistry {
 	return &MockMetricsRegistry{
 		Counters:   make(map[string]int64),
@@ -214,18 +185,21 @@ func NewMockMetricsRegistry() *MockMetricsRegistry {
 	}
 }
 
+// IncrementCounter increments a counter
 func (m *MockMetricsRegistry) IncrementCounter(name string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.Counters[name]++
 }
 
+// SetGauge sets a gauge value
 func (m *MockMetricsRegistry) SetGauge(name string, value int64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.Gauges[name] = value
 }
 
+// ObserveHistogram records a histogram value
 func (m *MockMetricsRegistry) ObserveHistogram(name string, value float64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
