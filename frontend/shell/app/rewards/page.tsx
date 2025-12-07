@@ -1,316 +1,267 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { coinsService, CoinState } from '@/services/coinsService';
 
-export default function RewardsPage() {
-    const [coins, setCoins] = useState(1250);
+export default function ShopeeCoinsPage() {
+    const [coinState, setCoinState] = useState<CoinState | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [isSpinning, setIsSpinning] = useState(false);
-    const [spinResult, setSpinResult] = useState<string | null>(null);
-    const [rotation, setRotation] = useState(0);
-    const [streak, setStreak] = useState(5);
-    const [checkedIn, setCheckedIn] = useState(false);
-    const [showConfetti, setShowConfetti] = useState(false);
-    const wheelRef = useRef<HTMLDivElement>(null);
+    const [spinResult, setSpinResult] = useState<{ reward: number; type: string } | null>(null);
+    const [checkInResult, setCheckInResult] = useState<{ reward: number; streak: number } | null>(null);
+    const [notification, setNotification] = useState<string | null>(null);
 
-    const prizes = [
-        { name: '1000 Xu', value: 1000, color: 'from-yellow-400 to-amber-500', icon: '🪙' },
-        { name: '5000 Xu', value: 5000, color: 'from-yellow-500 to-orange-500', icon: '💰' },
-        { name: 'Voucher 50K', value: 0, color: 'from-purple-400 to-pink-500', icon: '🎟️' },
-        { name: '100 Xu', value: 100, color: 'from-gray-400 to-gray-500', icon: '🥉' },
-        { name: '10000 Xu', value: 10000, color: 'from-yellow-300 to-yellow-500', icon: '👑' },
-        { name: '500 Xu', value: 500, color: 'from-blue-400 to-cyan-500', icon: '🥈' },
-        { name: 'Freeship', value: 0, color: 'from-green-400 to-emerald-500', icon: '🚚' },
-        { name: '200 Xu', value: 200, color: 'from-rose-400 to-red-500', icon: '🎁' },
-    ];
+    const loadCoins = async () => {
+        const state = await coinsService.getState();
+        setCoinState(state);
+        setIsLoading(false);
+    };
 
-    const missions = [
-        { id: 1, name: 'Mua hàng đầu tiên', reward: 500, progress: 0, total: 1, icon: '🛒' },
-        { id: 2, name: 'Đánh giá 3 sản phẩm', reward: 300, progress: 2, total: 3, icon: '⭐' },
-        { id: 3, name: 'Chia sẻ lên Facebook', reward: 200, progress: 1, total: 1, icon: '📱', completed: true },
-        { id: 4, name: 'Mời 2 bạn bè', reward: 1000, progress: 1, total: 2, icon: '👥' },
-        { id: 5, name: 'Xem 5 livestream', reward: 250, progress: 3, total: 5, icon: '🔴' },
-    ];
+    useEffect(() => {
+        loadCoins();
+    }, []);
 
-    const spinWheel = () => {
-        if (isSpinning || coins < 50) return;
+    const handleCheckIn = async () => {
+        const result = await coinsService.dailyCheckIn();
+        if (result.success) {
+            setCheckInResult({ reward: result.reward, streak: result.streak });
+            loadCoins();
+        } else {
+            setNotification(result.error || 'Đã điểm danh rồi!');
+            setTimeout(() => setNotification(null), 2000);
+        }
+    };
 
+    const handleSpin = async () => {
         setIsSpinning(true);
-        setCoins(prev => prev - 50);
         setSpinResult(null);
-
-        const prizeIndex = Math.floor(Math.random() * prizes.length);
-        const extraRotation = 360 * 5 + (prizeIndex * (360 / prizes.length)) + (360 / prizes.length / 2);
-
-        setRotation(prev => prev + extraRotation);
-
-        setTimeout(() => {
-            setIsSpinning(false);
-            setSpinResult(prizes[prizeIndex].name);
-            setCoins(prev => prev + prizes[prizeIndex].value);
-            setShowConfetti(true);
-            setTimeout(() => setShowConfetti(false), 3000);
-        }, 4000);
+        const result = await coinsService.spinWheel();
+        setSpinResult(result);
+        setIsSpinning(false);
+        loadCoins();
     };
 
-    const handleCheckIn = () => {
-        if (checkedIn) return;
-        setCheckedIn(true);
-        setStreak(prev => prev + 1);
-        setCoins(prev => prev + streak * 10 + 50);
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 2000);
-    };
+    const formatNumber = (num: number) => new Intl.NumberFormat('vi-VN').format(num);
+
+    if (isLoading || !coinState) {
+        return (
+            <div className="min-h-screen bg-gradient-to-b from-[#ee4d2d] to-[#ff8f70] flex items-center justify-center">
+                <div className="loading-spinner" style={{ borderTopColor: 'white' }} />
+            </div>
+        );
+    }
+
+    const hasCheckedIn = coinsService.hasCheckedInToday();
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-purple-900 via-purple-800 to-indigo-900 animate-fade-in">
-            {/* Confetti Effect */}
-            {showConfetti && (
-                <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
-                    {[...Array(50)].map((_, i) => (
-                        <div
-                            key={i}
-                            className="absolute w-3 h-3 animate-bounce"
-                            style={{
-                                left: `${Math.random() * 100}%`,
-                                top: '-20px',
-                                backgroundColor: ['#EE4D2D', '#FFD700', '#FF69B4', '#00CED1', '#7CFC00'][Math.floor(Math.random() * 5)],
-                                borderRadius: Math.random() > 0.5 ? '50%' : '0',
-                                animation: `fall ${2 + Math.random() * 2}s linear forwards`,
-                                animationDelay: `${Math.random() * 0.5}s`,
-                            }}
-                        />
-                    ))}
+        <div className="min-h-screen bg-gradient-to-b from-[#ee4d2d] to-[#ff8f70]">
+            {/* Toast */}
+            {notification && <div className="toast toast-error">{notification}</div>}
+
+            {/* Check-in Success Modal */}
+            {checkInResult && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
+                    <div className="bg-white rounded-lg p-6 max-w-sm mx-4 text-center animate-fade-in-up">
+                        <div className="text-6xl mb-4 animate-bounce">🎉</div>
+                        <h3 className="text-xl font-bold text-[#ee4d2d]">+{checkInResult.reward} Xu</h3>
+                        <p className="text-gray-600 mt-2">Điểm danh ngày {checkInResult.streak} liên tiếp!</p>
+                        <button
+                            onClick={() => setCheckInResult(null)}
+                            className="mt-4 px-6 py-2 bg-[#ee4d2d] text-white rounded-full hover:opacity-90"
+                        >
+                            Tuyệt vời!
+                        </button>
+                    </div>
                 </div>
             )}
 
-            <style jsx>{`
-        @keyframes fall {
-          to {
-            transform: translateY(100vh) rotate(720deg);
-            opacity: 0;
-          }
-        }
-      `}</style>
-
-            {/* Header */}
-            <div className="relative overflow-hidden py-8">
-                <div className="absolute inset-0">
-                    {[...Array(30)].map((_, i) => (
-                        <div
-                            key={i}
-                            className="absolute text-2xl animate-float opacity-30"
-                            style={{
-                                left: `${Math.random() * 100}%`,
-                                top: `${Math.random() * 100}%`,
-                                animationDelay: `${Math.random() * 3}s`,
-                            }}
+            {/* Spin Result Modal */}
+            {spinResult && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
+                    <div className="bg-white rounded-lg p-6 max-w-sm mx-4 text-center animate-fade-in-up">
+                        <div className="text-6xl mb-4">
+                            {spinResult.type === 'coins' ? '🪙' : spinResult.type === 'voucher' ? '🎟️' : '😅'}
+                        </div>
+                        <h3 className="text-xl font-bold">
+                            {spinResult.type === 'coins' && `+${spinResult.reward} Xu!`}
+                            {spinResult.type === 'voucher' && 'Voucher ₫10.000!'}
+                            {spinResult.type === 'nothing' && 'Chúc bạn may mắn lần sau!'}
+                        </h3>
+                        <button
+                            onClick={() => setSpinResult(null)}
+                            className="mt-4 px-6 py-2 bg-[#ee4d2d] text-white rounded-full hover:opacity-90"
                         >
-                            {['🪙', '💰', '🎁', '⭐', '🎮'][Math.floor(Math.random() * 5)]}
-                        </div>
-                    ))}
-                </div>
-
-                <div className="container mx-auto px-4 relative z-10">
-                    <div className="text-center text-white">
-                        <h1 className="text-4xl md:text-5xl font-black mb-2">
-                            <span className="inline-block animate-bounce">🎮</span> Shopee Rewards
-                        </h1>
-                        <p className="text-purple-200">Chơi game, nhận xu, đổi quà!</p>
-
-                        {/* Coin display */}
-                        <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-lg px-6 py-3 rounded-full mt-4 border border-white/20">
-                            <span className="text-3xl animate-bounce">🪙</span>
-                            <span className="text-3xl font-black text-yellow-300">{coins.toLocaleString()}</span>
-                            <span className="text-purple-200">Shopee Xu</span>
-                        </div>
+                            OK
+                        </button>
                     </div>
                 </div>
-            </div>
+            )}
 
-            <div className="container mx-auto px-4 pb-12">
-                <div className="grid lg:grid-cols-2 gap-8">
-                    {/* Lucky Wheel */}
-                    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 animate-slide-up">
-                        <h2 className="text-2xl font-bold text-white text-center mb-6 flex items-center justify-center gap-2">
-                            <span className="animate-wiggle">🎰</span> Vòng Quay May Mắn
-                        </h2>
+            <div className="container mx-auto px-4 py-6">
+                {/* Header */}
+                <div className="text-white text-center mb-6">
+                    <h1 className="text-2xl font-bold flex items-center justify-center gap-2">
+                        <span className="text-3xl">🪙</span> Shopee Xu
+                    </h1>
+                </div>
 
-                        <div className="relative mx-auto" style={{ width: 300, height: 300 }}>
-                            {/* Wheel */}
-                            <div
-                                ref={wheelRef}
-                                className="w-full h-full rounded-full relative overflow-hidden shadow-2xl"
-                                style={{
-                                    transform: `rotate(${rotation}deg)`,
-                                    transition: isSpinning ? 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
-                                }}
-                            >
-                                {prizes.map((prize, index) => (
-                                    <div
-                                        key={prize.name}
-                                        className={`absolute w-1/2 h-1/2 origin-bottom-right bg-gradient-to-br ${prize.color}`}
-                                        style={{
-                                            transform: `rotate(${index * 45}deg) skewY(-45deg)`,
-                                            top: 0,
-                                            right: '50%',
-                                        }}
-                                    >
-                                        <div
-                                            className="absolute text-white font-bold text-xs"
-                                            style={{
-                                                transform: 'skewY(45deg) rotate(22.5deg)',
-                                                top: '40%',
-                                                left: '10%',
-                                            }}
-                                        >
-                                            <span className="text-lg">{prize.icon}</span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Center button */}
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <button
-                                    onClick={spinWheel}
-                                    disabled={isSpinning || coins < 50}
-                                    className={`w-20 h-20 rounded-full text-white font-bold shadow-xl transition-all z-10 ${isSpinning
-                                            ? 'bg-gray-500 cursor-not-allowed'
-                                            : coins < 50
-                                                ? 'bg-gray-500 cursor-not-allowed'
-                                                : 'bg-gradient-to-br from-[#EE4D2D] to-[#FF6633] hover:scale-110 animate-pulse-glow'
-                                        }`}
-                                >
-                                    {isSpinning ? '...' : 'QUAY'}
-                                </button>
-                            </div>
-
-                            {/* Pointer */}
-                            <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-20">
-                                <div className="w-0 h-0 border-l-[15px] border-r-[15px] border-t-[30px] border-l-transparent border-r-transparent border-t-white drop-shadow-lg" />
-                            </div>
+                {/* Balance Card */}
+                <div className="bg-white rounded-2xl p-6 shadow-lg mb-6 animate-fade-in-up">
+                    <div className="text-center">
+                        <div className="text-sm text-gray-500">Số dư hiện tại</div>
+                        <div className="text-4xl font-bold text-[#ee4d2d] flex items-center justify-center gap-2 my-2">
+                            <span className="text-3xl">🪙</span>
+                            {formatNumber(coinState.balance)}
                         </div>
-
-                        <p className="text-center text-purple-200 mt-4">
-                            Chi phí: <span className="text-yellow-300 font-bold">50 Xu</span> / lượt
-                        </p>
-
-                        {/* Result */}
-                        {spinResult && (
-                            <div className="mt-4 p-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-xl text-center animate-bounce-in">
-                                <p className="text-white font-bold text-lg">🎉 Chúc mừng!</p>
-                                <p className="text-white text-2xl font-black">{spinResult}</p>
+                        <div className="text-xs text-gray-400">
+                            Tổng xu đã tích lũy: {formatNumber(coinState.lifetime)}
+                        </div>
+                        {coinState.expiring && (
+                            <div className="text-xs text-orange-500 mt-2">
+                                ⚠️ {formatNumber(coinState.expiring.amount)} xu sắp hết hạn ({coinState.expiring.date})
                             </div>
                         )}
                     </div>
 
-                    {/* Daily Check-in */}
-                    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 animate-slide-up" style={{ animationDelay: '100ms' }}>
-                        <h2 className="text-2xl font-bold text-white text-center mb-6 flex items-center justify-center gap-2">
-                            <span className="animate-heartbeat">📅</span> Điểm Danh Hàng Ngày
-                        </h2>
+                    <div className="mt-4 pt-4 border-t flex justify-around">
+                        <Link href="/rewards/history" className="text-center">
+                            <div className="text-sm text-gray-500">Lịch sử</div>
+                            <div className="text-[#ee4d2d]">📋</div>
+                        </Link>
+                        <Link href="/rewards/earn" className="text-center">
+                            <div className="text-sm text-gray-500">Kiếm xu</div>
+                            <div className="text-[#ee4d2d]">💰</div>
+                        </Link>
+                        <Link href="/rewards/spend" className="text-center">
+                            <div className="text-sm text-gray-500">Đổi xu</div>
+                            <div className="text-[#ee4d2d]">🎁</div>
+                        </Link>
+                    </div>
+                </div>
 
-                        {/* Streak display */}
-                        <div className="text-center mb-6">
-                            <div className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-500 to-red-500 px-6 py-3 rounded-full">
-                                <span className="text-3xl">🔥</span>
-                                <div className="text-white">
-                                    <p className="text-sm opacity-80">Chuỗi điểm danh</p>
-                                    <p className="text-2xl font-black">{streak} ngày</p>
-                                </div>
-                            </div>
-                        </div>
+                {/* Daily Check-in */}
+                <div className="bg-white rounded-2xl p-6 shadow-lg mb-6 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+                    <h3 className="font-bold flex items-center gap-2 mb-4">
+                        📅 Điểm Danh Hàng Ngày
+                    </h3>
 
-                        {/* Calendar */}
-                        <div className="grid grid-cols-7 gap-2 mb-6">
-                            {[...Array(7)].map((_, i) => {
-                                const isCompleted = i < streak % 7;
-                                const isToday = i === streak % 7;
-                                return (
-                                    <div
-                                        key={i}
-                                        className={`aspect-square rounded-lg flex flex-col items-center justify-center text-white transition-all ${isCompleted
-                                                ? 'bg-gradient-to-br from-green-400 to-emerald-500 scale-100'
-                                                : isToday
-                                                    ? 'bg-gradient-to-br from-yellow-400 to-orange-500 animate-pulse scale-110 ring-2 ring-yellow-300'
-                                                    : 'bg-white/10'
-                                            }`}
-                                    >
-                                        <span className="text-lg">{isCompleted ? '✓' : isToday ? '🎁' : '?'}</span>
-                                        <span className="text-[10px] opacity-80">Ngày {i + 1}</span>
+                    <div className="flex justify-between mb-4">
+                        {[1, 2, 3, 4, 5, 6, 7].map(day => {
+                            const isCompleted = day <= coinState.dailyCheckIn.streak;
+                            const isToday = day === coinState.dailyCheckIn.streak + 1;
+                            return (
+                                <div key={day} className="text-center">
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${isCompleted
+                                            ? 'bg-[#ee4d2d] text-white'
+                                            : isToday
+                                                ? 'border-2 border-[#ee4d2d] text-[#ee4d2d] animate-pulse'
+                                                : 'bg-gray-100 text-gray-400'
+                                        }`}>
+                                        {isCompleted ? '✓' : `+${5 + (day - 1) * 2}`}
                                     </div>
-                                );
-                            })}
+                                    <div className="text-xs text-gray-400 mt-1">Ngày {day}</div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <button
+                        onClick={handleCheckIn}
+                        disabled={hasCheckedIn}
+                        className={`w-full py-3 rounded-full font-medium transition-all ${hasCheckedIn
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-[#ee4d2d] to-[#ff8f70] text-white hover:opacity-90'
+                            }`}
+                    >
+                        {hasCheckedIn ? '✓ Đã điểm danh hôm nay' : `Điểm danh nhận +${coinState.dailyCheckIn.todayReward} xu`}
+                    </button>
+                </div>
+
+                {/* Spin Wheel */}
+                <div className="bg-white rounded-2xl p-6 shadow-lg mb-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+                    <h3 className="font-bold flex items-center gap-2 mb-4">
+                        🎰 Vòng Quay May Mắn
+                    </h3>
+
+                    <div className="text-center">
+                        <div className={`w-40 h-40 mx-auto rounded-full bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500 flex items-center justify-center text-white text-4xl ${isSpinning ? 'animate-spin' : ''
+                            }`} style={{ animationDuration: '0.5s' }}>
+                            🎡
                         </div>
 
-                        {/* Check-in button */}
                         <button
-                            onClick={handleCheckIn}
-                            disabled={checkedIn}
-                            className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${checkedIn
-                                    ? 'bg-gray-500 text-white cursor-not-allowed'
-                                    : 'bg-gradient-to-r from-[#EE4D2D] to-[#FF6633] text-white hover:scale-105 hover-shine ripple'
+                            onClick={handleSpin}
+                            disabled={isSpinning}
+                            className={`mt-4 px-8 py-3 rounded-full font-medium transition-all ${isSpinning
+                                    ? 'bg-gray-100 text-gray-400 cursor-wait'
+                                    : 'bg-gradient-to-r from-[#ee4d2d] to-[#ff8f70] text-white hover:opacity-90'
                                 }`}
                         >
-                            {checkedIn ? '✓ Đã điểm danh hôm nay' : `Điểm danh (+${streak * 10 + 50} Xu)`}
+                            {isSpinning ? 'Đang quay...' : 'Quay ngay (1 lượt/ngày)'}
                         </button>
+                    </div>
 
-                        {/* Bonus info */}
-                        <div className="mt-4 p-4 bg-white/5 rounded-xl">
-                            <p className="text-purple-200 text-sm text-center">
-                                💡 Điểm danh liên tục {7 - (streak % 7)} ngày nữa để nhận
-                                <span className="text-yellow-300 font-bold"> x2 Xu!</span>
-                            </p>
+                    <div className="mt-4 pt-4 border-t grid grid-cols-3 gap-2 text-center text-xs">
+                        <div className="p-2 bg-yellow-50 rounded">
+                            <div>🪙 10-100 xu</div>
+                            <div className="text-gray-400">30%</div>
+                        </div>
+                        <div className="p-2 bg-pink-50 rounded">
+                            <div>🎟️ Voucher</div>
+                            <div className="text-gray-400">10%</div>
+                        </div>
+                        <div className="p-2 bg-gray-50 rounded">
+                            <div>😅 Chúc may mắn</div>
+                            <div className="text-gray-400">60%</div>
                         </div>
                     </div>
                 </div>
 
-                {/* Missions */}
-                <div className="mt-8 bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 animate-slide-up" style={{ animationDelay: '200ms' }}>
-                    <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-                        <span className="animate-wiggle">🎯</span> Nhiệm Vụ Hàng Ngày
-                    </h2>
+                {/* Ways to Earn */}
+                <div className="bg-white rounded-2xl p-6 shadow-lg animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+                    <h3 className="font-bold flex items-center gap-2 mb-4">
+                        💡 Cách Kiếm Xu
+                    </h3>
 
-                    <div className="space-y-4">
-                        {missions.map((mission, index) => (
-                            <div
-                                key={mission.id}
-                                className={`p-4 rounded-xl transition-all animate-slide-up ${mission.completed
-                                        ? 'bg-green-500/20 border border-green-500/30'
-                                        : 'bg-white/5 hover:bg-white/10 border border-white/10'
-                                    }`}
-                                style={{ animationDelay: `${300 + index * 50}ms` }}
-                            >
-                                <div className="flex items-center gap-4">
-                                    <span className="text-3xl">{mission.icon}</span>
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <h3 className="text-white font-semibold">{mission.name}</h3>
-                                            <span className="text-yellow-300 font-bold flex items-center gap-1">
-                                                +{mission.reward} 🪙
-                                            </span>
-                                        </div>
+                    <div className="space-y-3">
+                        {[
+                            { icon: '🛒', title: 'Mua hàng', desc: '1 xu cho mỗi ₫10.000', coins: '~100 xu/đơn' },
+                            { icon: '⭐', title: 'Đánh giá sản phẩm', desc: 'Đánh giá kèm ảnh/video', coins: '+50 xu' },
+                            { icon: '📅', title: 'Điểm danh', desc: 'Điểm danh hàng ngày', coins: '+5-50 xu' },
+                            { icon: '🎮', title: 'Chơi game', desc: 'Tham gia mini game', coins: '+10-200 xu' },
+                            { icon: '👥', title: 'Mời bạn bè', desc: 'Bạn bè đăng ký thành công', coins: '+500 xu' },
+                        ].map((item, i) => (
+                            <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                <div className="text-2xl">{item.icon}</div>
+                                <div className="flex-1">
+                                    <div className="font-medium text-sm">{item.title}</div>
+                                    <div className="text-xs text-gray-500">{item.desc}</div>
+                                </div>
+                                <div className="text-[#ee4d2d] text-sm font-medium">{item.coins}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
 
-                                        {/* Progress bar */}
-                                        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                                            <div
-                                                className={`h-full rounded-full transition-all duration-500 ${mission.completed
-                                                        ? 'bg-gradient-to-r from-green-400 to-emerald-500'
-                                                        : 'bg-gradient-to-r from-[#EE4D2D] to-[#FF6633]'
-                                                    }`}
-                                                style={{ width: `${(mission.progress / mission.total) * 100}%` }}
-                                            />
-                                        </div>
-                                        <p className="text-purple-300 text-xs mt-1">
-                                            {mission.completed ? '✓ Hoàn thành' : `${mission.progress}/${mission.total}`}
-                                        </p>
+                {/* Transaction History */}
+                <div className="bg-white rounded-2xl p-6 shadow-lg mt-6 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
+                    <h3 className="font-bold flex items-center justify-between mb-4">
+                        <span>📋 Lịch Sử Giao Dịch</span>
+                        <Link href="/rewards/history" className="text-sm text-[#ee4d2d]">Xem tất cả →</Link>
+                    </h3>
+
+                    <div className="divide-y">
+                        {coinState.transactions.slice(0, 5).map((tx, i) => (
+                            <div key={tx.id} className="py-3 flex items-center justify-between">
+                                <div>
+                                    <div className="text-sm">{tx.description}</div>
+                                    <div className="text-xs text-gray-400">
+                                        {new Date(tx.timestamp).toLocaleDateString('vi-VN')}
                                     </div>
-
-                                    {mission.completed && (
-                                        <button className="px-4 py-2 bg-gradient-to-r from-green-400 to-emerald-500 text-white rounded-full text-sm font-bold hover:scale-105 transition-transform">
-                                            Nhận Xu
-                                        </button>
-                                    )}
+                                </div>
+                                <div className={`font-medium ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {tx.amount >= 0 ? '+' : ''}{formatNumber(tx.amount)}
                                 </div>
                             </div>
                         ))}
