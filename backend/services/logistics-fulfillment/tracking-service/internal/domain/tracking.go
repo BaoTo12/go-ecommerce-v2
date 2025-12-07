@@ -1,108 +1,94 @@
 package domain
-}
-	return t.CurrentStatus == EventTypeDelivered
-func (t *TrackingInfo) IsDelivered() bool {
 
-}
-	return &t.Events[len(t.Events)-1]
-	}
-		return nil
-	if len(t.Events) == 0 {
-func (t *TrackingInfo) GetLatestEvent() *TrackingEvent {
-
-}
-	return event
-
-	t.UpdatedAt = time.Now()
-	t.CurrentLocation = location
-	t.CurrentStatus = eventType
-	t.Events = append(t.Events, *event)
-
-	}
-		FacilityName:   facilityName,
-		Carrier:        t.Carrier,
-		Timestamp:      time.Now(),
-		Description:    description,
-		Location:       location,
-		EventType:      eventType,
-		TrackingNumber: t.TrackingNumber,
-		EventID:        uuid.New().String(),
-	event := &TrackingEvent{
-func (t *TrackingInfo) AddEvent(eventType TrackingEventType, location Location, description, facilityName string) *TrackingEvent {
-
-}
-	}, nil
-		Events:            []TrackingEvent{},
-		UpdatedAt:         now,
-		CreatedAt:         now,
-		EstimatedDelivery: now.Add(72 * time.Hour), // 3 days default
-		CurrentStatus:     EventTypePickedUp,
-		Destination:       destination,
-		Origin:            origin,
-		Carrier:           carrier,
-		ShipmentID:        shipmentID,
-		TrackingNumber:    trackingNumber,
-	return &TrackingInfo{
-	now := time.Now()
-
-	}
-		return nil, errors.New(errors.ErrInvalidInput, "shipment ID is required")
-	if shipmentID == "" {
-	}
-		return nil, errors.New(errors.ErrInvalidInput, "tracking number is required")
-	if trackingNumber == "" {
-func NewTrackingInfo(trackingNumber, shipmentID, carrier, origin, destination string) (*TrackingInfo, error) {
-
-}
-	Events            []TrackingEvent
-	UpdatedAt         time.Time
-	CreatedAt         time.Time
-	EstimatedDelivery time.Time
-	CurrentLocation   Location
-	CurrentStatus     TrackingEventType
-	Destination       string
-	Origin            string
-	Carrier           string
-	ShipmentID        string
-	TrackingNumber    string
-type TrackingInfo struct {
-
-}
-	FacilityName   string
-	Carrier        string
-	Timestamp      time.Time
-	Description    string
-	Location       Location
-	EventType      TrackingEventType
-	TrackingNumber string
-	EventID        string
-type TrackingEvent struct {
-
-}
-	Longitude float64
-	Latitude  float64
-	Country   string
-	State     string
-	City      string
-type Location struct {
-
-)
-	EventTypeReturned        TrackingEventType = "RETURNED"
-	EventTypeException       TrackingEventType = "EXCEPTION"
-	EventTypeDelivered       TrackingEventType = "DELIVERED"
-	EventTypeOutForDelivery  TrackingEventType = "OUT_FOR_DELIVERY"
-	EventTypeAtFacility      TrackingEventType = "AT_FACILITY"
-	EventTypeInTransit       TrackingEventType = "IN_TRANSIT"
-	EventTypePickedUp        TrackingEventType = "PICKED_UP"
-const (
-
-type TrackingEventType string
-
-)
-	"github.com/titan-commerce/backend/pkg/errors"
-	"github.com/google/uuid"
-
-	"time"
 import (
+	"time"
+)
 
+// TrackingStatus represents the status of an order in tracking
+type TrackingStatus string
 
+const (
+	StatusProcessing     TrackingStatus = "processing"
+	StatusShipped        TrackingStatus = "shipped"
+	StatusInTransit      TrackingStatus = "in_transit"
+	StatusOutForDelivery TrackingStatus = "out_for_delivery"
+	StatusDelivered      TrackingStatus = "delivered"
+)
+
+// OrderTracking represents complete tracking information for an order
+type OrderTracking struct {
+	OrderID           string         `json:"order_id"`
+	Status            TrackingStatus `json:"status"`
+	EstimatedDelivery string         `json:"estimated_delivery"`
+	Carrier           string         `json:"carrier"`
+	TrackingNumber    string         `json:"tracking_number"`
+	CurrentLocation   *Location      `json:"current_location"`
+	Steps             []TrackingStep `json:"steps"`
+	Driver            *Driver        `json:"driver,omitempty"`
+}
+
+// Location represents a geographic location
+type Location struct {
+	Lat     float64 `json:"lat"`
+	Lng     float64 `json:"lng"`
+	Address string  `json:"address"`
+}
+
+// Driver represents the delivery driver
+type Driver struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Phone     string `json:"phone"`
+	Vehicle   string `json:"vehicle"`
+	PlateNo   string `json:"plate_no"`
+	AvatarURL string `json:"avatar_url"`
+}
+
+// TrackingStep represents a step in the tracking timeline
+type TrackingStep struct {
+	Status      string `json:"status"`
+	Description string `json:"description"`
+	Time        string `json:"time"`
+	Location    string `json:"location,omitempty"`
+	Completed   bool   `json:"completed"`
+}
+
+// NewOrderTracking creates a new tracking record
+func NewOrderTracking(orderID, carrier string) *OrderTracking {
+	return &OrderTracking{
+		OrderID:        orderID,
+		Status:         StatusProcessing,
+		Carrier:        carrier,
+		TrackingNumber: "SPXVN" + orderID[3:],
+		Steps:          make([]TrackingStep, 0),
+	}
+}
+
+// UpdateDriverLocation updates the driver's current location
+func (t *OrderTracking) UpdateDriverLocation(lat, lng float64, address string) {
+	t.CurrentLocation = &Location{
+		Lat:     lat,
+		Lng:     lng,
+		Address: address,
+	}
+}
+
+// AddStep adds a new tracking step
+func (t *OrderTracking) AddStep(status, description, location string) {
+	step := TrackingStep{
+		Status:      status,
+		Description: description,
+		Time:        time.Now().Format("15:04"),
+		Location:    location,
+		Completed:   true,
+	}
+	// Prepend to keep newest first
+	t.Steps = append([]TrackingStep{step}, t.Steps...)
+}
+
+// Repository interface for tracking data
+type Repository interface {
+	GetTrackingByOrderID(ctx interface{}, orderID string) (*OrderTracking, error)
+	SaveTracking(ctx interface{}, tracking *OrderTracking) error
+	UpdateDriverLocation(ctx interface{}, orderID string, lat, lng float64) error
+}

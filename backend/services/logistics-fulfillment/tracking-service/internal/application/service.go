@@ -2,86 +2,127 @@ package application
 
 import (
 	"context"
+	"math/rand"
+	"sync"
+	"time"
 
 	"github.com/titan-commerce/backend/tracking-service/internal/domain"
 	"github.com/titan-commerce/backend/pkg/logger"
 )
 
+// TrackingService handles order tracking operations
 type TrackingService struct {
-	repo   domain.TrackingRepository
-	logger *logger.Logger
+	repo        domain.Repository
+	logger      *logger.Logger
+	subscribers map[string][]chan *LocationUpdate
+	mu          sync.RWMutex
 }
 
-func NewTrackingService(repo domain.TrackingRepository, logger *logger.Logger) *TrackingService {
-	return &TrackingService{
-		repo:   repo,
-		logger: logger,
+// LocationUpdate is sent to WebSocket subscribers
+type LocationUpdate struct {
+	OrderID  string  `json:"order_id"`
+	Lat      float64 `json:"lat"`
+	Lng      float64 `json:"lng"`
+	ETA      int     `json:"eta_minutes"`
+	Distance float64 `json:"distance_km"`
+}
+
+// NewTrackingService creates a new tracking service
+func NewTrackingService(repo domain.Repository, log *logger.Logger) *TrackingService {
+	svc := &TrackingService{
+		repo:        repo,
+		logger:      log,
+		subscribers: make(map[string][]chan *LocationUpdate),
 	}
+	// Start location simulation
+	go svc.simulateDriverMovement()
+	return svc
 }
 
-// CreateTracking creates a new tracking record (Command)
-func (s *TrackingService) CreateTracking(ctx context.Context, trackingNumber, shipmentID, carrier, origin, destination string) error {
-	tracking, err := domain.NewTrackingInfo(trackingNumber, shipmentID, carrier, origin, destination)
-	if err != nil {
+// GetTracking returns tracking information for an order
+func (s *TrackingService) GetTracking(ctx context.Context, orderID string) (*domain.OrderTracking, error) {
+	return s.repo.GetTrackingByOrderID(ctx, orderID)
+}
+
+// UpdateLocation updates the driver's location for an order
+func (s *TrackingService) UpdateLocation(ctx context.Context, orderID string, lat, lng float64) error {
+	if err := s.repo.UpdateDriverLocation(ctx, orderID, lat, lng); err != nil {
 		return err
 	}
 
-	if err := s.repo.Save(ctx, tracking); err != nil {
-		s.logger.Error(err, "failed to save tracking info")
-		return err
-	}
+	// Notify subscribers
+	s.notifySubscribers(orderID, &LocationUpdate{
+		OrderID:  orderID,
+		Lat:      lat,
+		Lng:      lng,
+		ETA:      rand.Intn(30) + 5,
+		Distance: rand.Float64()*5 + 0.5,
+	})
 
-	s.logger.Infof("Tracking created: tracking_number=%s, shipment_id=%s", trackingNumber, shipmentID)
 	return nil
 }
 
-// UpdateLocation adds a new tracking event (Command)
-func (s *TrackingService) UpdateLocation(ctx context.Context, trackingNumber string, eventType domain.TrackingEventType, location domain.Location, description, facilityName string) (*domain.TrackingEvent, error) {
-	tracking, err := s.repo.FindByTrackingNumber(ctx, trackingNumber)
-	if err != nil {
-		return nil, err
-	}
+// Subscribe adds a subscriber for location updates
+func (s *TrackingService) Subscribe(orderID string) chan *LocationUpdate {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	event := tracking.AddEvent(eventType, location, description, facilityName)
-
-	// Save event to ScyllaDB
-	if err := s.repo.AddEvent(ctx, event); err != nil {
-		s.logger.Error(err, "failed to save tracking event")
-		return nil, err
-	}
-
-	// Update tracking info
-	if err := s.repo.Update(ctx, tracking); err != nil {
-		s.logger.Error(err, "failed to update tracking info")
-		return nil, err
-	}
-
-	s.logger.Infof("Tracking updated: tracking_number=%s, event_type=%s, location=%s",
-		trackingNumber, eventType, location.City)
-
-	return event, nil
+	ch := make(chan *LocationUpdate, 10)
+	s.subscribers[orderID] = append(s.subscribers[orderID], ch)
+	return ch
 }
 
-// GetTrackingHistory retrieves complete tracking history (Query)
-func (s *TrackingService) GetTrackingHistory(ctx context.Context, trackingNumber string) (*domain.TrackingInfo, error) {
-	tracking, err := s.repo.FindByTrackingNumber(ctx, trackingNumber)
-	if err != nil {
-		return nil, err
-	}
+// Unsubscribe removes a subscriber
+func (s *TrackingService) Unsubscribe(orderID string, ch chan *LocationUpdate) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	// Get event history from ScyllaDB
-	events, err := s.repo.GetEventHistory(ctx, trackingNumber)
-	if err != nil {
-		s.logger.Error(err, "failed to get event history")
-		return nil, err
+	subs := s.subscribers[orderID]
+	for i, sub := range subs {
+		if sub == ch {
+			s.subscribers[orderID] = append(subs[:i], subs[i+1:]...)
+			close(ch)
+			break
+		}
 	}
-
-	tracking.Events = events
-	return tracking, nil
 }
 
-// GetCurrentStatus retrieves current tracking status (Query)
-func (s *TrackingService) GetCurrentStatus(ctx context.Context, trackingNumber string) (*domain.TrackingInfo, error) {
-	return s.repo.FindByTrackingNumber(ctx, trackingNumber)
+func (s *TrackingService) notifySubscribers(orderID string, update *LocationUpdate) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, ch := range s.subscribers[orderID] {
+		select {
+		case ch <- update:
+		default:
+			// Channel full, skip
+		}
+	}
 }
 
+// simulateDriverMovement simulates driver movement for demo purposes
+func (s *TrackingService) simulateDriverMovement() {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	baseLat := 10.775
+	baseLng := 106.700
+
+	for range ticker.C {
+		s.mu.RLock()
+		for orderID := range s.subscribers {
+			// Simulate movement
+			lat := baseLat + (rand.Float64()-0.5)*0.01
+			lng := baseLng + (rand.Float64()-0.5)*0.01
+
+			s.notifySubscribers(orderID, &LocationUpdate{
+				OrderID:  orderID,
+				Lat:      lat,
+				Lng:      lng,
+				ETA:      rand.Intn(20) + 5,
+				Distance: rand.Float64()*3 + 0.2,
+			})
+		}
+		s.mu.RUnlock()
+	}
+}
