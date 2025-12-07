@@ -102,8 +102,8 @@ export default function ProductComparison() {
                                     <button
                                         onClick={() => addToCompare(product)}
                                         className={`absolute bottom-2 right-2 w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all ${compareList.find(p => p.id === product.id)
-                                                ? 'bg-[#ee4d2d] text-white'
-                                                : 'bg-white text-gray-600 opacity-0 group-hover:opacity-100'
+                                            ? 'bg-[#ee4d2d] text-white'
+                                            : 'bg-white text-gray-600 opacity-0 group-hover:opacity-100'
                                             }`}
                                     >
                                         ⚖️
@@ -159,7 +159,7 @@ export default function ProductComparison() {
                                         <td className="p-4 font-medium dark:text-white">Đánh giá</td>
                                         {compareList.map(product => (
                                             <td key={product.id} className="p-4 text-center dark:text-white">
-                                                ⭐ {product.rating} ({product.soldCount} đã bán)
+                                                ⭐ {product.rating} ({product.sold} đã bán)
                                             </td>
                                         ))}
                                     </tr>

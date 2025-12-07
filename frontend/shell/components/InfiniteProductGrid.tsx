@@ -100,7 +100,7 @@ export default function InfiniteProductGrid({
                                     )}
                                 </div>
                                 <span className="text-[10px] text-gray-400 dark:text-gray-500">
-                                    Đã bán {product.soldCount > 1000 ? `${(product.soldCount / 1000).toFixed(1)}k` : product.soldCount}
+                                    Đã bán {product.sold > 1000 ? `${(product.sold / 1000).toFixed(1)}k` : product.sold}
                                 </span>
                             </div>
                         </div>
