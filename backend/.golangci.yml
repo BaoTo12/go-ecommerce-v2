@@ -1,0 +1,182 @@
+# golangci-lint configuration
+# Production-grade linter configuration
+
+run:
+  timeout: 5m
+  tests: true
+  skip-dirs:
+    - vendor
+    - testdata
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+linters:
+  enable-all: false
+  enable:
+    # Default linters
+    - errcheck      # Check for unchecked errors
+    - gosimple      # Simplify code
+    - govet         # Examine Go source code for bugs
+    - ineffassign   # Detect ineffectual assignments
+    - staticcheck   # Static analysis checks
+    - unused        # Check for unused constants, variables, functions and types
+    
+    # Additional linters
+    - bodyclose     # Check HTTP response body is closed
+    - contextcheck  # Check context usage
+    - dupl          # Detect duplicated code
+    - exportloopref # Check for exported loop variables
+    - funlen        # Detect long functions
+    - gocognit      # Check cognitive complexity
+    - goconst       # Find repeated strings that could be replaced by constant
+    - gocritic      # Source code linter
+    - gocyclo       # Check cyclomatic complexity
+    - godot         # Check comments end with a period
+    - gofmt         # Check code is properly formatted
+    - goimports     # Check imports are properly formatted
+    - gosec         # Security checks
+    - misspell      # Find commonly misspelled words
+    - nakedret      # Find naked returns in long functions
+    - nestif        # Check deeply nested if statements
+    - nilerr        # Find code that returns nil even if it checks that error is not nil
+    - prealloc      # Find slice declarations that could potentially be preallocated
+    - revive        # Fast, configurable linter for Go
+    - sqlclosecheck # Check SQL rows close
+    - unconvert     # Remove unnecessary type conversions
+    - unparam       # Report unused function parameters
+    - whitespace    # Detect whitespace issues
+    - wsl           # Whitespace linter
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+    
+  funlen:
+    lines: 100
+    statements: 50
+    
+  gocognit:
+    min-complexity: 20
+    
+  gocyclo:
+    min-complexity: 15
+    
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+    
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - dupImport
+
+  gosec:
+    excludes:
+      - G104  # Audit errors not checked (handled by errcheck)
+    config:
+      G306: "0644"
+      
+  misspell:
+    locale: US
+    
+  nakedret:
+    max-func-lines: 30
+    
+  nestif:
+    min-complexity: 4
+    
+  prealloc:
+    simple: true
+    range-loops: true
+    for-loops: false
+    
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+        disabled: false
+      - name: blank-imports
+        severity: warning
+        disabled: false
+      - name: context-as-argument
+        severity: warning
+        disabled: false
+      - name: context-keys-type
+        severity: warning
+        disabled: false
+      - name: error-return
+        severity: warning
+        disabled: false
+      - name: error-strings
+        severity: warning
+        disabled: false
+      - name: errorf
+        severity: warning
+        disabled: false
+      - name: if-return
+        severity: warning
+        disabled: false
+      - name: increment-decrement
+        severity: warning
+        disabled: false
+      - name: var-naming
+        severity: warning
+        disabled: false
+      - name: var-declaration
+        severity: warning
+        disabled: false
+      - name: package-comments
+        severity: warning
+        disabled: true  # Optional for non-exported packages
+      - name: range
+        severity: warning
+        disabled: false
+      - name: receiver-naming
+        severity: warning
+        disabled: false
+      - name: time-naming
+        severity: warning
+        disabled: false
+      - name: indent-error-flow
+        severity: warning
+        disabled: false
+
+  staticcheck:
+    go: "1.21"
+    checks:
+      - all
+
+  unused:
+    check-exported: false
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests
+    - path: _test\.go
+      linters:
+        - funlen
+        - goconst
+        - dupl
+        
+    # Exclude some linters from running on generated files
+    - path: \.pb\.go
+      linters:
+        - all
+        
+    # Allow longer lines in main files
+    - path: cmd/.+/main\.go
+      linters:
+        - funlen
+        
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  new: false
