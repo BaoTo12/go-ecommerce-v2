@@ -20,8 +20,8 @@ Includes:
 
 // Stack is a lock-free stack (Treiber Stack algorithm)
 type Stack[T any] struct {
+	size int64          // Must be first for 64-bit alignment
 	head unsafe.Pointer // *node[T]
-	size int64
 }
 
 type node[T any] struct {
@@ -85,9 +85,9 @@ func (s *Stack[T]) IsEmpty() bool {
 
 // Queue is a lock-free queue (Michael-Scott algorithm)
 type Queue[T any] struct {
+	size int64          // Must be first for 64-bit alignment
 	head unsafe.Pointer // *qnode[T]
 	tail unsafe.Pointer // *qnode[T]
-	size int64
 }
 
 type qnode[T any] struct {
@@ -173,10 +173,10 @@ func (q *Queue[T]) IsEmpty() bool {
 
 // RingBuffer is a lock-free ring buffer
 type RingBuffer[T any] struct {
-	buffer  []T
-	mask    int64
-	head    int64
+	head    int64 // Must be first for 64-bit alignment
 	tail    int64
+	mask    int64
+	buffer  []T
 }
 
 // NewRingBuffer creates a ring buffer with given size (must be power of 2)
