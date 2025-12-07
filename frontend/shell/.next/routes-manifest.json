@@ -42,6 +42,14 @@
         "nxtPid": "nxtPid"
       },
       "namedRegex": "^/products/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/tracking/[orderId]",
+      "regex": "^/tracking/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPorderId": "nxtPorderId"
+      },
+      "namedRegex": "^/tracking/(?<nxtPorderId>[^/]+?)(?:/)?$"
     }
   ],
   "staticRoutes": [
@@ -136,6 +144,24 @@
       "namedRegex": "^/admin/pricing(?:/)?$"
     },
     {
+      "page": "/affiliate",
+      "regex": "^/affiliate(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/affiliate(?:/)?$"
+    },
+    {
+      "page": "/ar-tryon",
+      "regex": "^/ar\\-tryon(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/ar\\-tryon(?:/)?$"
+    },
+    {
+      "page": "/auction",
+      "regex": "^/auction(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/auction(?:/)?$"
+    },
+    {
       "page": "/auth/login",
       "regex": "^/auth/login(?:/)?$",
       "routeKeys": {},
@@ -190,10 +216,34 @@
       "namedRegex": "^/deals/flash\\-sale(?:/)?$"
     },
     {
+      "page": "/feed",
+      "regex": "^/feed(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/feed(?:/)?$"
+    },
+    {
+      "page": "/for-you",
+      "regex": "^/for\\-you(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/for\\-you(?:/)?$"
+    },
+    {
       "page": "/games",
       "regex": "^/games(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/games(?:/)?$"
+    },
+    {
+      "page": "/group-buy",
+      "regex": "^/group\\-buy(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/group\\-buy(?:/)?$"
+    },
+    {
+      "page": "/image-search",
+      "regex": "^/image\\-search(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/image\\-search(?:/)?$"
     },
     {
       "page": "/live",
@@ -206,6 +256,12 @@
       "regex": "^/products(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/products(?:/)?$"
+    },
+    {
+      "page": "/referral",
+      "regex": "^/referral(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/referral(?:/)?$"
     },
     {
       "page": "/rewards",
@@ -224,6 +280,12 @@
       "regex": "^/size\\-guide(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/size\\-guide(?:/)?$"
+    },
+    {
+      "page": "/virtual-scroll",
+      "regex": "^/virtual\\-scroll(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/virtual\\-scroll(?:/)?$"
     }
   ],
   "dataRoutes": [],

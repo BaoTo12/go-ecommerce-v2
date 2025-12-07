@@ -171,6 +171,33 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
   type __Unused = __Check
 }
 
+// Validate ../../app/affiliate/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/affiliate">> = Specific
+  const handler = {} as typeof import("../../app/affiliate/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/ar-tryon/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/ar-tryon">> = Specific
+  const handler = {} as typeof import("../../app/ar-tryon/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/auction/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/auction">> = Specific
+  const handler = {} as typeof import("../../app/auction/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../app/auth/login/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/auth/login">> = Specific
@@ -252,10 +279,46 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
   type __Unused = __Check
 }
 
+// Validate ../../app/feed/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/feed">> = Specific
+  const handler = {} as typeof import("../../app/feed/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/for-you/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/for-you">> = Specific
+  const handler = {} as typeof import("../../app/for-you/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../app/games/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/games">> = Specific
   const handler = {} as typeof import("../../app/games/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/group-buy/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/group-buy">> = Specific
+  const handler = {} as typeof import("../../app/group-buy/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/image-search/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/image-search">> = Specific
+  const handler = {} as typeof import("../../app/image-search/page.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
@@ -297,6 +360,15 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
   type __Unused = __Check
 }
 
+// Validate ../../app/referral/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/referral">> = Specific
+  const handler = {} as typeof import("../../app/referral/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../app/rewards/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/rewards">> = Specific
@@ -319,6 +391,24 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
 {
   type __IsExpected<Specific extends AppPageConfig<"/size-guide">> = Specific
   const handler = {} as typeof import("../../app/size-guide/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/tracking/[orderId]/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/tracking/[orderId]">> = Specific
+  const handler = {} as typeof import("../../app/tracking/[orderId]/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/virtual-scroll/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/virtual-scroll">> = Specific
+  const handler = {} as typeof import("../../app/virtual-scroll/page.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
