@@ -3,97 +3,78 @@
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
-	"os/signal"
-	"strings"
-	"syscall"
 
-	"github.com/titan-commerce/backend/tracking-service/internal/application"
-	"github.com/titan-commerce/backend/tracking-service/internal/infrastructure/memory"
-	"github.com/titan-commerce/backend/pkg/config"
-	"github.com/titan-commerce/backend/pkg/logger"
+	"github.com/titan-commerce/backend/services/logistics-fulfillment/tracking-service/internal/application"
+	"github.com/titan-commerce/backend/services/logistics-fulfillment/tracking-service/internal/infrastructure/memory"
+	"github.com/titan-commerce/backend/pkg/server"
 )
 
+/*
+Tracking Service - Updated to use Unified Server Package
+
+Features automatically enabled:
+- Security Headers
+- Rate Limiting  
+- Response Compression
+- Distributed Tracing
+- Metrics Collection
+- Graceful Shutdown
+- SSE support for real-time updates
+*/
+
 func main() {
-	cfg, err := config.Load()
-	if err != nil {
-		fmt.Printf("Failed to load config: %v\n", err)
-		os.Exit(1)
+	port := os.Getenv("HTTP_PORT")
+	if port == "" {
+		port = "8084"
 	}
 
-	log := logger.New(logger.Config{
-		Level:       cfg.LogLevel,
-		ServiceName: "tracking-service",
-		CellID:      cfg.CellID,
-		Pretty:      true,
-	})
+	// Create unified server
+	config := server.DefaultConfig()
+	config.Port = port
+	config.ServiceName = "tracking-service"
+	config.CORSOrigins = []string{"http://localhost:3000", "*"}
+	config.CSRFEnabled = false // API-only service
+	config.CompressionEnabled = false // SSE doesn't work with compression
 
-	log.Info("Tracking Service starting...")
+	srv := server.New(config)
 
-	// Initialize in-memory repository
+	// Initialize service layer
 	repo := memory.NewTrackingRepository()
+	trackingService := application.NewTrackingService(repo, nil)
 
-	// Initialize application service
-	trackingService := application.NewTrackingService(repo, log)
+	// Register handlers
+	srv.HandleFunc("GET /api/v1/tracking/{order_id}", handleGetTracking(trackingService, srv))
+	srv.HandleFunc("GET /api/v1/tracking/{order_id}/live", handleLiveTracking(trackingService, srv))
+	srv.HandleFunc("POST /api/v1/tracking-update/{order_id}", handleUpdateLocation(trackingService, srv))
 
-	// CORS middleware
-	corsMiddleware := func(next http.HandlerFunc) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-			if r.Method == "OPTIONS" {
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-			next(w, r)
-		}
+	log.Println("Tracking Service starting with unified server...")
+	log.Println("Endpoints:")
+	log.Println("  GET  /api/v1/tracking/{order_id}        - Get tracking info")
+	log.Println("  GET  /api/v1/tracking/{order_id}/live   - SSE live updates")
+	log.Println("  POST /api/v1/tracking-update/{order_id} - Update location")
+	log.Println("  GET  /health                            - Health check (built-in)")
+	log.Println("  GET  /metrics                           - Metrics (built-in)")
+
+	if err := srv.Start(); err != nil {
+		log.Fatalf("Server failed: %v", err)
 	}
+}
 
-	// Health check
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	})
-
-	// GET /api/v1/tracking/:order_id
-	http.HandleFunc("/api/v1/tracking/", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		path := strings.TrimPrefix(r.URL.Path, "/api/v1/tracking/")
-		parts := strings.Split(path, "/")
-
-		if len(parts) == 0 || parts[0] == "" {
+func handleGetTracking(svc *application.TrackingService, srv *server.Server) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		orderID := r.PathValue("order_id")
+		if orderID == "" {
 			http.Error(w, "order_id required", http.StatusBadRequest)
 			return
 		}
 
-		orderID := parts[0]
+		// Track metric
+		srv.Metrics().Counter("tracking_requests").Inc()
 
-		// Handle live location endpoint (SSE)
-		if len(parts) == 2 && parts[1] == "live" {
-			w.Header().Set("Content-Type", "text/event-stream")
-			w.Header().Set("Cache-Control", "no-cache")
-			w.Header().Set("Connection", "keep-alive")
-
-			ch := trackingService.Subscribe(orderID)
-			defer trackingService.Unsubscribe(orderID, ch)
-
-			flusher, ok := w.(http.Flusher)
-			if !ok {
-				http.Error(w, "SSE not supported", http.StatusInternalServerError)
-				return
-			}
-
-			for update := range ch {
-				data, _ := json.Marshal(update)
-				fmt.Fprintf(w, "data: %s\n\n", data)
-				flusher.Flush()
-			}
-			return
-		}
-
-		// Get tracking details
-		tracking, err := trackingService.GetTracking(r.Context(), orderID)
+		tracking, err := svc.GetTracking(r.Context(), orderID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -105,24 +86,65 @@ func main() {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(tracking)
-	}))
+	}
+}
 
-	// POST /api/v1/tracking/:order_id/location - Update driver location
-	http.HandleFunc("/api/v1/tracking-update/", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+func handleLiveTracking(svc *application.TrackingService, srv *server.Server) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		orderID := r.PathValue("order_id")
+		if orderID == "" {
+			http.Error(w, "order_id required", http.StatusBadRequest)
 			return
 		}
 
-		orderID := strings.TrimPrefix(r.URL.Path, "/api/v1/tracking-update/")
+		// Track metric
+		srv.Metrics().Counter("sse_connections").Inc()
+		srv.Metrics().Gauge("sse_active").Inc()
+		defer srv.Metrics().Gauge("sse_active").Dec()
+
+		// SSE headers
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+
+		ch := svc.Subscribe(orderID)
+		defer svc.Unsubscribe(orderID, ch)
+
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			http.Error(w, "SSE not supported", http.StatusInternalServerError)
+			return
+		}
+
+		for update := range ch {
+			data, _ := json.Marshal(update)
+			fmt.Fprintf(w, "data: %s\n\n", data)
+			flusher.Flush()
+		}
+	}
+}
+
+func handleUpdateLocation(svc *application.TrackingService, srv *server.Server) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		orderID := r.PathValue("order_id")
+		if orderID == "" {
+			http.Error(w, "order_id required", http.StatusBadRequest)
+			return
+		}
 
 		var req struct {
 			Lat float64 `json:"lat"`
 			Lng float64 `json:"lng"`
 		}
-		json.NewDecoder(r.Body).Decode(&req)
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid request body", http.StatusBadRequest)
+			return
+		}
 
-		err := trackingService.UpdateLocation(r.Context(), orderID, req.Lat, req.Lng)
+		// Track metric
+		srv.Metrics().Counter("location_updates").Inc()
+
+		err := svc.UpdateLocation(r.Context(), orderID, req.Lat, req.Lng)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -130,29 +152,5 @@ func main() {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"status": "updated"})
-	}))
-
-	// Start HTTP server
-	port := cfg.HTTPPort
-	if port == 0 {
-		port = 8084
 	}
-
-	go func() {
-		addr := fmt.Sprintf(":%d", port)
-		log.Infof("HTTP server listening on %s", addr)
-		log.Info("Endpoints:")
-		log.Info("  GET  /api/v1/tracking/:order_id         - Get tracking info")
-		log.Info("  GET  /api/v1/tracking/:order_id/live    - SSE live updates")
-		log.Info("  POST /api/v1/tracking-update/:order_id  - Update location")
-		if err := http.ListenAndServe(addr, nil); err != nil {
-			log.Fatal(err, "Failed to serve HTTP")
-		}
-	}()
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	log.Info("Shutting down Tracking Service")
 }
